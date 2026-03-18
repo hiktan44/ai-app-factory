@@ -27,8 +27,8 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 
-# Runtime tools (orchestrator.sh needs bash, jq, curl)
-RUN apk add --no-cache bash jq curl
+# Runtime tools (orchestrator.sh needs bash, jq, curl; Coolify healthcheck needs wget)
+RUN apk add --no-cache bash jq curl wget
 
 # Install Claude CLI globally (pipeline execution)
 RUN corepack enable && npm install -g @anthropic-ai/claude-code
