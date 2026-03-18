@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
 # ============================================================
 # AI App Factory v1.0 - Ana Orkestratör
@@ -12,6 +12,34 @@ set -euo pipefail
 #
 # Kuru çalıştırma: DRY_RUN=1 ./orchestrator.sh test
 # ============================================================
+
+# NVM ve PATH ayarları (cron gibi ortamlarda çalışabilmesi için)
+export NVM_DIR="${HOME}/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
+# Claude CLI'nin PATH'te olduğunu doğrula
+if ! command -v claude &> /dev/null; then
+  echo "HATA: 'claude' komutu bulunamadı. Claude Code CLI'nin kurulu olduğundan emin olun."
+  echo "Kurulum: npm install -g @anthropic-ai/claude-code"
+  exit 1
+fi
+
+# Claude CLI'nin API key ile çalıştığını doğrula
+if [ "${DRY_RUN:-0}" != "1" ]; then
+  echo "Claude CLI bağlantı testi yapılıyor..."
+  TEST_RESULT=$(claude -p "ok" --output-format json 2>&1 || true)
+  TEST_ERROR=$(echo "$TEST_RESULT" | jq -r '.is_error // false' 2>/dev/null || echo "true")
+  TEST_MSG=$(echo "$TEST_RESULT" | jq -r '.result // empty' 2>/dev/null || echo "$TEST_RESULT")
+
+  if [ "$TEST_ERROR" = "true" ] || echo "$TEST_MSG" | grep -qi "invalid api key\|unauthorized\|login"; then
+    echo "HATA: Claude CLI API bağlantısı başarısız."
+    echo "Detay: $TEST_MSG"
+    echo ""
+    echo "Çözüm: 'claude' komutunu çalıştırıp giriş yapın veya API key'inizi kontrol edin."
+    exit 1
+  fi
+  echo "Claude CLI bağlantısı başarılı."
+fi
 
 CATEGORY="${1:?Kullanım: ./orchestrator.sh <kategori> (örn: productivity, developer-tools, health, finance, education)}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -71,26 +99,35 @@ run_step() {
     return 1
   fi
 
-  # Claude CLI çalıştır
-  local sonuc
+  # Claude CLI çalıştır (stdout JSON, stderr ayrı)
+  local json_dosya="${WORKSPACE}/logs/${adim_adi}.json"
+  local stderr_dosya="${WORKSPACE}/logs/${adim_adi}.stderr"
+
   if [ -n "$ek_flagler" ]; then
-    sonuc=$(claude -p "${kullanici_promptu}" \
+    claude -p "${kullanici_promptu}" \
       --append-system-prompt "${system_prompt}" \
       --permission-mode bypassPermissions \
       --output-format json \
       --allowedTools "Bash,Read,Edit,Write,WebSearch,WebFetch" \
-      ${ek_flagler} 2>&1) || true
+      ${ek_flagler} \
+      > "${json_dosya}" 2> "${stderr_dosya}" || true
   else
-    sonuc=$(claude -p "${kullanici_promptu}" \
+    claude -p "${kullanici_promptu}" \
       --append-system-prompt "${system_prompt}" \
       --permission-mode bypassPermissions \
       --output-format json \
       --allowedTools "Bash,Read,Edit,Write,WebSearch,WebFetch" \
-      2>&1) || true
+      > "${json_dosya}" 2> "${stderr_dosya}" || true
   fi
 
-  # Çıktıyı kaydet
-  echo "$sonuc" > "${WORKSPACE}/logs/${adim_adi}.json"
+  # Çıktıyı oku
+  local sonuc
+  sonuc=$(cat "${json_dosya}" 2>/dev/null || echo '{}')
+
+  # Stderr varsa logla
+  if [ -s "${stderr_dosya}" ]; then
+    log "Stderr: $(head -3 "${stderr_dosya}")"
+  fi
 
   # Süreyi hesapla
   local bitis=$(date +%s)
@@ -102,9 +139,16 @@ run_step() {
   hata_var=$(echo "$sonuc" | jq -r '.is_error // false' 2>/dev/null || echo "false")
 
   if [ "$hata_var" = "true" ]; then
-    log "UYARI: ${adim_adi} adımında hata oluştu"
+    local hata_mesaji
+    hata_mesaji=$(echo "$sonuc" | jq -r '.result // "Bilinmeyen hata"' 2>/dev/null || echo "Bilinmeyen hata")
+    log "UYARI: ${adim_adi} adımında hata oluştu: ${hata_mesaji}"
     return 1
   fi
+
+  # Maliyet bilgisi
+  local maliyet
+  maliyet=$(echo "$sonuc" | jq -r '.total_cost_usd // 0' 2>/dev/null || echo "0")
+  log "Maliyet: \$${maliyet}"
 
   return 0
 }
