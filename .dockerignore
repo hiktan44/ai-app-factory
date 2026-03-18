@@ -1,0 +1,9 @@
+web/node_modules
+web/.next
+.git
+runs/
+*.log
+.DS_Store
+settings.json
+web/.env.local
+web/.env
