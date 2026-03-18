@@ -19,8 +19,23 @@ export async function GET() {
       PROJECT_ROOT: process.env.PROJECT_ROOT,
       PATH: process.env.PATH,
       NODE_ENV: process.env.NODE_ENV,
+      ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY
+        ? process.env.ANTHROPIC_API_KEY.slice(0, 12) + "..."
+        : "NOT SET",
+      GEMINI_API_KEY: process.env.GEMINI_API_KEY ? "SET" : "NOT SET",
     },
   };
+
+  // Test claude CLI with API key
+  try {
+    const testResult = execSync(
+      `ANTHROPIC_API_KEY="${process.env.ANTHROPIC_API_KEY || ""}" claude -p "say: ok" --dangerously-skip-permissions --output-format json 2>&1 | head -c 200`,
+      { timeout: 30000, shell: "/bin/bash" }
+    ).toString().trim();
+    info.claudeTest = testResult;
+  } catch (e) {
+    info.claudeTest = "ERROR: " + String(e).slice(0, 200);
+  }
 
   // List /factory contents
   try {
