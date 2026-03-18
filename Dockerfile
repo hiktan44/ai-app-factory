@@ -38,8 +38,14 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
-# Factory data volume mount point
-RUN mkdir -p /factory
+# Copy factory pipeline files (orchestrator, prompts, learnings)
+COPY orchestrator.sh /factory/orchestrator.sh
+COPY prompts/ /factory/prompts/
+COPY learnings.json /factory/learnings.json
+RUN chmod +x /factory/orchestrator.sh
+
+# Factory runs directory (persistent volume mount point)
+RUN mkdir -p /factory/runs
 
 EXPOSE 3000
 
