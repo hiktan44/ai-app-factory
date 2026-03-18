@@ -1,5 +1,5 @@
 node_modules/
-runs/
+/runs/
 .env
 .env.local
 *.log
@@ -7,3 +7,8 @@ runs/
 .next/
 dist/
 build/
+
+# Web UI
+web/.next/
+web/node_modules/
+web/.env.local
