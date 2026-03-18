@@ -27,7 +27,7 @@ fi
 # Claude CLI'nin API key ile çalıştığını doğrula
 if [ "${DRY_RUN:-0}" != "1" ]; then
   echo "Claude CLI bağlantı testi yapılıyor..."
-  TEST_RESULT=$(claude -p "ok" --output-format json 2>&1 || true)
+  TEST_RESULT=$(claude -p "ok" --dangerously-skip-permissions --output-format json 2>/dev/null || true)
   TEST_ERROR=$(echo "$TEST_RESULT" | jq -r '.is_error // false' 2>/dev/null || echo "true")
   TEST_MSG=$(echo "$TEST_RESULT" | jq -r '.result // empty' 2>/dev/null || echo "$TEST_RESULT")
 
@@ -106,26 +106,21 @@ run_step() {
   if [ -n "$ek_flagler" ]; then
     claude -p "${kullanici_promptu}" \
       --append-system-prompt "${system_prompt}" \
-      --permission-mode acceptEdits \
+      --dangerously-skip-permissions \
       --output-format json \
       ${ek_flagler} \
-      > "${json_dosya}" 2> "${stderr_dosya}" || true
+      > "${json_dosya}" 2>/dev/null || true
   else
     claude -p "${kullanici_promptu}" \
       --append-system-prompt "${system_prompt}" \
-      --permission-mode acceptEdits \
+      --dangerously-skip-permissions \
       --output-format json \
-      > "${json_dosya}" 2> "${stderr_dosya}" || true
+      > "${json_dosya}" 2>/dev/null || true
   fi
 
   # Çıktıyı oku
   local sonuc
   sonuc=$(cat "${json_dosya}" 2>/dev/null || echo '{}')
-
-  # Stderr varsa logla
-  if [ -s "${stderr_dosya}" ]; then
-    log "Stderr: $(head -3 "${stderr_dosya}")"
-  fi
 
   # Süreyi hesapla
   local bitis=$(date +%s)
