@@ -33,6 +33,9 @@ RUN apk add --no-cache bash jq curl wget
 # Install Claude CLI globally (pipeline execution)
 RUN corepack enable && npm install -g @anthropic-ai/claude-code
 
+# Create non-root user (claude --dangerously-skip-permissions requires non-root)
+RUN addgroup -g 1001 -S factory && adduser -u 1001 -S factory -G factory
+
 # Copy standalone output
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
@@ -46,6 +49,11 @@ RUN chmod +x /factory/orchestrator.sh
 
 # Factory runs directory (persistent volume mount point)
 RUN mkdir -p /factory/runs
+
+# Set ownership for non-root user
+RUN chown -R factory:factory /app /factory
+
+USER factory
 
 EXPOSE 3000
 
