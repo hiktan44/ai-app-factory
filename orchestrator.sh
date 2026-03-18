@@ -106,17 +106,15 @@ run_step() {
   if [ -n "$ek_flagler" ]; then
     claude -p "${kullanici_promptu}" \
       --append-system-prompt "${system_prompt}" \
-      --permission-mode bypassPermissions \
+      --permission-mode acceptEdits \
       --output-format json \
-      --allowedTools "Bash,Read,Edit,Write,WebSearch,WebFetch" \
       ${ek_flagler} \
       > "${json_dosya}" 2> "${stderr_dosya}" || true
   else
     claude -p "${kullanici_promptu}" \
       --append-system-prompt "${system_prompt}" \
-      --permission-mode bypassPermissions \
+      --permission-mode acceptEdits \
       --output-format json \
-      --allowedTools "Bash,Read,Edit,Write,WebSearch,WebFetch" \
       > "${json_dosya}" 2> "${stderr_dosya}" || true
   fi
 
