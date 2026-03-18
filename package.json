@@ -1,0 +1,27 @@
+{
+  "name": "ai-app-factory",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Otonom AI uygulama üretim bandı - Claude Code ile çalışır",
+  "scripts": {
+    "start": "bash orchestrator.sh",
+    "start:productivity": "bash orchestrator.sh productivity",
+    "start:developer-tools": "bash orchestrator.sh developer-tools",
+    "start:health": "bash orchestrator.sh health",
+    "start:finance": "bash orchestrator.sh finance",
+    "start:education": "bash orchestrator.sh education",
+    "validate": "bash validate-run.sh",
+    "dry-run": "DRY_RUN=1 bash orchestrator.sh test"
+  },
+  "dependencies": {
+    "puppeteer": "^24.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "puppeteer"
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "version": "1.0",
+  "total_runs": 0,
+  "last_updated": "",
+  "patterns": {
+    "build_errors": [],
+    "architecture_mistakes": [],
+    "review_findings": [],
+    "successful_patterns": []
+  },
+  "rules": [
+    "Next.js app router kullanırken 'use client' directive'ini unutma",
+    "Supabase RLS policy'lerini her zaman enable et",
+    "Tailwind config'de content path'leri doğru ayarla",
+    "OG image boyutu tam 1200x630 olmalı",
+    "Her uygulamada /api/health endpoint'i oluştur (Coolify health check için)",
+    "Dockerfile'da multi-stage build kullan (boyut optimizasyonu)",
+    "TypeScript strict mode her zaman açık olmalı"
+  ],
+  "tech_preferences": {
+    "preferred_stack": "Next.js 15 + Supabase + Tailwind v4",
+    "deployment": "Coolify (Docker-based, self-hosted)",
+    "package_manager": "pnpm",
+    "avoid": ["webpack manuel config", "class components", "CSS modules", "yarn"]
+  }
+}
