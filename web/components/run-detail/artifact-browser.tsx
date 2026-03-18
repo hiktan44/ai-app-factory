@@ -53,7 +53,7 @@ export function ArtifactBrowser({ runId }: ArtifactBrowserProps) {
       <Card className="p-4">
         <div className="animate-pulse space-y-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-4 bg-[var(--color-bg-tertiary)] rounded" />
+            <div key={i} className="h-4 bg-surface-tertiary rounded" />
           ))}
         </div>
       </Card>
@@ -73,21 +73,21 @@ export function ArtifactBrowser({ runId }: ArtifactBrowserProps) {
 
   return (
     <Card className="p-4">
-      <h3 className="text-sm font-medium text-[var(--color-text-primary)] mb-3">
+      <h3 className="text-sm font-medium text-content mb-3">
         \ud83d\udcc2 \u00dcretilen Dosyalar
       </h3>
-      <div className="space-y-1 text-xs font-[var(--font-mono)]">
+      <div className="space-y-1 text-xs font-mono">
         {/* Top-level files */}
         {topFiles.map((file) => (
           <div
             key={file.path}
-            className="flex items-center justify-between py-1 px-2 rounded hover:bg-[var(--color-bg-tertiary)]"
+            className="flex items-center justify-between py-1 px-2 rounded hover:bg-surface-tertiary"
           >
-            <span className="text-[var(--color-text-secondary)]">
+            <span className="text-content-secondary">
               {getFileIcon(file.extension || "")} {file.name}
             </span>
             {file.size !== undefined && (
-              <span className="text-[var(--color-text-muted)]">
+              <span className="text-content-muted">
                 {formatSize(file.size)}
               </span>
             )}
@@ -101,32 +101,32 @@ export function ArtifactBrowser({ runId }: ArtifactBrowserProps) {
           );
           return (
             <details key={dir.path} className="group">
-              <summary className="flex items-center justify-between py-1 px-2 rounded cursor-pointer hover:bg-[var(--color-bg-tertiary)]">
-                <span className="text-[var(--color-accent)]">
+              <summary className="flex items-center justify-between py-1 px-2 rounded cursor-pointer hover:bg-surface-tertiary">
+                <span className="text-brand">
                   \ud83d\udcc1 {dir.name}/
                 </span>
-                <span className="text-[var(--color-text-muted)]">
+                <span className="text-content-muted">
                   {children.length} dosya
                 </span>
               </summary>
-              <div className="ml-4 border-l border-[var(--color-border)] pl-2">
+              <div className="ml-4 border-l border-edge pl-2">
                 {children.slice(0, 20).map((file) => (
                   <div
                     key={file.path}
-                    className="flex items-center justify-between py-0.5 px-2 text-[var(--color-text-secondary)]"
+                    className="flex items-center justify-between py-0.5 px-2 text-content-secondary"
                   >
                     <span className="truncate">
                       {getFileIcon(file.extension || "")} {file.name}
                     </span>
                     {file.size !== undefined && (
-                      <span className="text-[var(--color-text-muted)] ml-2 shrink-0">
+                      <span className="text-content-muted ml-2 shrink-0">
                         {formatSize(file.size)}
                       </span>
                     )}
                   </div>
                 ))}
                 {children.length > 20 && (
-                  <div className="py-0.5 px-2 text-[var(--color-text-muted)] italic">
+                  <div className="py-0.5 px-2 text-content-muted italic">
                     ...ve {children.length - 20} dosya daha
                   </div>
                 )}
@@ -136,7 +136,7 @@ export function ArtifactBrowser({ runId }: ArtifactBrowserProps) {
         })}
 
         {artifacts.length === 0 && (
-          <div className="text-[var(--color-text-muted)] italic py-2">
+          <div className="text-content-muted italic py-2">
             Hen\u00fcz dosya \u00fcretilmedi
           </div>
         )}

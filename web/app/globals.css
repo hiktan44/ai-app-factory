@@ -1,59 +1,258 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-bg-primary: #0a0a0f;
-  --color-bg-secondary: #111118;
-  --color-bg-tertiary: #1a1a24;
-  --color-bg-card: #15151e;
-  --color-border: #2a2a3a;
-  --color-border-hover: #3a3a4a;
-  --color-text-primary: #e4e4e7;
-  --color-text-secondary: #a1a1aa;
-  --color-text-muted: #71717a;
-  --color-accent: #6366f1;
-  --color-accent-hover: #818cf8;
+  /* Surfaces */
+  --color-surface: #06060b;
+  --color-surface-secondary: #0d0d15;
+  --color-surface-tertiary: #14141f;
+  --color-surface-card: #111119;
+  --color-surface-elevated: #1a1a26;
+  --color-surface-hover: #1e1e2e;
+
+  /* Borders */
+  --color-edge: #1e1e30;
+  --color-edge-hover: #2e2e45;
+  --color-edge-active: #404060;
+
+  /* Content */
+  --color-content: #e8e8ef;
+  --color-content-secondary: #9898b0;
+  --color-content-muted: #5e5e78;
+  --color-content-faint: #3a3a50;
+
+  /* Brand */
+  --color-brand: #7c3aed;
+  --color-brand-hover: #8b5cf6;
+  --color-brand-glow: #7c3aed40;
+  --color-brand-subtle: #7c3aed15;
+
+  /* Accent */
+  --color-accent-blue: #3b82f6;
+  --color-accent-cyan: #06b6d4;
+  --color-accent-emerald: #10b981;
+  --color-accent-amber: #f59e0b;
+  --color-accent-rose: #f43f5e;
+  --color-accent-orange: #f97316;
+
+  /* Status */
   --color-success: #22c55e;
   --color-warning: #eab308;
-  --color-error: #ef4444;
+  --color-danger: #ef4444;
   --color-info: #3b82f6;
-  --color-terminal-bg: #050508;
+
+  /* Terminal */
+  --color-terminal: #030306;
   --color-terminal-text: #4ade80;
-  --color-terminal-error: #f87171;
+  --color-terminal-err: #f87171;
   --color-terminal-step: #60a5fa;
   --color-terminal-cost: #fbbf24;
-  --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", ui-monospace, monospace;
+
+  /* Fonts */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+}
+
+/* ============================
+   Base Styles
+   ============================ */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background-color: var(--color-bg-primary);
-  color: var(--color-text-primary);
-  font-family: system-ui, -apple-system, sans-serif;
+  background-color: var(--color-surface);
+  color: var(--color-content);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Terminal log viewer scrollbar */
-.terminal-scrollbar::-webkit-scrollbar {
+/* ============================
+   Scrollbar
+   ============================ */
+
+::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
-.terminal-scrollbar::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.terminal-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--color-border);
+::-webkit-scrollbar-thumb {
+  background: var(--color-edge);
   border-radius: 3px;
 }
 
-.terminal-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: var(--color-border-hover);
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-edge-hover);
 }
 
-/* Pulse animation for running indicator */
+.terminal-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+/* ============================
+   Animations
+   ============================ */
+
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in-scale {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px var(--color-brand-glow); }
+  50% { box-shadow: 0 0 40px var(--color-brand-glow), 0 0 60px var(--color-brand-glow); }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes typing-dots {
+  0%, 20% { content: '.'; }
+  40% { content: '..'; }
+  60%, 100% { content: '...'; }
 }
 
 .animate-pulse-dot {
   animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+.animate-fade-in-scale {
+  animation: fade-in-scale 0.4s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.6s ease-out forwards;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.animate-gradient-shift {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+/* Stagger children animation */
+.stagger-children > * {
+  opacity: 0;
+  animation: fade-in 0.4s ease-out forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.2s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.3s; }
+.stagger-children > *:nth-child(7) { animation-delay: 0.35s; }
+.stagger-children > *:nth-child(8) { animation-delay: 0.4s; }
+
+/* ============================
+   Glassmorphism
+   ============================ */
+
+.glass {
+  background: rgba(17, 17, 25, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--color-edge);
+}
+
+.glass-brand {
+  background: rgba(124, 58, 237, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+}
+
+/* ============================
+   Gradient text
+   ============================ */
+
+.gradient-text {
+  background: linear-gradient(135deg, #7c3aed, #3b82f6, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-gold {
+  background: linear-gradient(135deg, #f59e0b, #f97316, #ef4444);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================
+   Noise overlay
+   ============================ */
+
+.noise-overlay::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.015'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
 }

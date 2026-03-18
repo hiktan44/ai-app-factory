@@ -9,15 +9,15 @@ interface LogViewerProps {
 }
 
 function classifyLine(line: string): string {
-  if (/ADIM \d+\/\d+:/.test(line)) return "text-[var(--color-terminal-step)] font-bold";
-  if (/={3,}/.test(line)) return "text-[var(--color-border)]";
-  if (/Maliyet:/.test(line)) return "text-[var(--color-terminal-cost)]";
-  if (/HATA:|hata olu/.test(line)) return "text-[var(--color-terminal-error)]";
+  if (/ADIM \d+\/\d+:/.test(line)) return "text-terminal-step font-bold";
+  if (/={3,}/.test(line)) return "text-edge";
+  if (/Maliyet:/.test(line)) return "text-terminal-cost";
+  if (/HATA:|hata olu/.test(line)) return "text-terminal-err";
   if (/UYARI:/.test(line)) return "text-yellow-400";
-  if (/BA\u015eARILI|ba\u015far\u0131l\u0131|TAMAMLANDI|Tamamland\u0131/.test(line)) return "text-[var(--color-terminal-text)]";
+  if (/BA\u015eARILI|ba\u015far\u0131l\u0131|TAMAMLANDI|Tamamland\u0131/.test(line)) return "text-terminal-text";
   if (/Ba\u015flat\u0131l\u0131yor:/.test(line)) return "text-blue-300";
-  if (/PIPELINE TAMAMLANDI/.test(line)) return "text-[var(--color-terminal-text)] font-bold";
-  return "text-[var(--color-text-secondary)]";
+  if (/PIPELINE TAMAMLANDI/.test(line)) return "text-terminal-text font-bold";
+  return "text-content-secondary";
 }
 
 export function LogViewer({ content, isLive = false }: LogViewerProps) {
@@ -46,14 +46,14 @@ export function LogViewer({ content, isLive = false }: LogViewerProps) {
   return (
     <div className="relative">
       {/* Header */}
-      <div className="flex items-center justify-between bg-[var(--color-bg-tertiary)] rounded-t-lg px-4 py-2 border border-b-0 border-[var(--color-border)]">
+      <div className="flex items-center justify-between bg-surface-tertiary rounded-t-lg px-4 py-2 border border-b-0 border-edge">
         <div className="flex items-center gap-2">
           <div className="flex gap-1.5">
             <div className="w-3 h-3 rounded-full bg-red-500/70" />
             <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
             <div className="w-3 h-3 rounded-full bg-green-500/70" />
           </div>
-          <span className="text-xs text-[var(--color-text-muted)] ml-2">
+          <span className="text-xs text-content-muted ml-2">
             pipeline.log
           </span>
         </div>
@@ -72,12 +72,12 @@ export function LogViewer({ content, isLive = false }: LogViewerProps) {
                   containerRef.current.scrollTop = containerRef.current.scrollHeight;
                 }
               }}
-              className="text-xs text-[var(--color-accent)] hover:text-[var(--color-accent-hover)]"
+              className="text-xs text-brand hover:text-brand-hover"
             >
               \u2193 Alta git
             </button>
           )}
-          <span className="text-xs text-[var(--color-text-muted)]">
+          <span className="text-xs text-content-muted">
             {lines.length} sat\u0131r
           </span>
         </div>
@@ -87,10 +87,10 @@ export function LogViewer({ content, isLive = false }: LogViewerProps) {
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="bg-[var(--color-terminal-bg)] rounded-b-lg border border-[var(--color-border)] p-4 font-[var(--font-mono)] text-xs leading-relaxed h-[500px] overflow-y-auto terminal-scrollbar"
+        className="bg-terminal rounded-b-lg border border-edge p-4 font-mono text-xs leading-relaxed h-[500px] overflow-y-auto terminal-scrollbar"
       >
         {lines.length === 0 ? (
-          <div className="text-[var(--color-text-muted)] italic">
+          <div className="text-content-muted italic">
             Henüz log yok. Pipeline ba\u015flat\u0131l\u0131yor...
           </div>
         ) : (

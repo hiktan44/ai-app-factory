@@ -8,18 +8,18 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variants = {
   primary:
-    "bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white",
+    "bg-gradient-to-r from-brand to-accent-blue hover:opacity-90 text-white shadow-lg shadow-brand-glow",
   secondary:
-    "bg-[var(--color-bg-tertiary)] hover:bg-[var(--color-border)] text-[var(--color-text-primary)] border border-[var(--color-border)]",
-  danger: "bg-red-600 hover:bg-red-700 text-white",
+    "bg-surface-tertiary hover:bg-surface-hover text-content border border-edge hover:border-edge-hover",
+  danger: "bg-danger/10 hover:bg-danger/20 text-danger border border-danger/20",
   ghost:
-    "bg-transparent hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)]",
+    "bg-transparent hover:bg-surface-tertiary text-content-secondary",
 };
 
 const sizes = {
-  sm: "px-3 py-1.5 text-xs",
-  md: "px-4 py-2 text-sm",
-  lg: "px-6 py-3 text-base",
+  sm: "px-3 py-1.5 text-xs rounded-lg",
+  md: "px-4 py-2.5 text-sm rounded-xl",
+  lg: "px-6 py-3 text-base rounded-xl",
 };
 
 export function Button({
@@ -33,10 +33,10 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2 focus:ring-offset-[var(--color-bg-primary)]",
+        "inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 focus:ring-offset-surface",
         variants[variant],
         sizes[size],
-        disabled && "opacity-50 cursor-not-allowed",
+        disabled && "opacity-40 cursor-not-allowed pointer-events-none",
         className,
       )}
       disabled={disabled}

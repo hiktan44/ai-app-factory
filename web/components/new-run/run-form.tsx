@@ -50,7 +50,7 @@ export function RunForm() {
   return (
     <div className="space-y-6">
       <Card className="p-6">
-        <h2 className="text-lg font-medium text-[var(--color-text-primary)] mb-4">
+        <h2 className="text-lg font-medium text-content mb-4">
           Kategori Se\u00e7in
         </h2>
         <CategorySelector selected={category} onSelect={(c) => { setCategory(c); setUseCustom(false); }} />
@@ -61,9 +61,9 @@ export function RunForm() {
               type="checkbox"
               checked={useCustom}
               onChange={(e) => setUseCustom(e.target.checked)}
-              className="rounded border-[var(--color-border)]"
+              className="rounded border-edge"
             />
-            <span className="text-sm text-[var(--color-text-secondary)]">
+            <span className="text-sm text-content-secondary">
               \u00d6zel kategori kullan
             </span>
           </label>
@@ -75,7 +75,7 @@ export function RunForm() {
             value={customCategory}
             onChange={(e) => setCustomCategory(e.target.value)}
             placeholder="kategori-adi (k\u00fc\u00e7\u00fck harf, tire)"
-            className="mt-2 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-tertiary)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:border-[var(--color-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+            className="mt-2 w-full rounded-lg border border-edge bg-surface-tertiary px-3 py-2 text-sm text-content focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
           />
         )}
       </Card>

@@ -10,12 +10,12 @@ interface StepProgressProps {
 
 const statusStyles: Record<string, { circle: string; line: string }> = {
   pending: {
-    circle: "border-[var(--color-border)] bg-[var(--color-bg-tertiary)] text-[var(--color-text-muted)]",
-    line: "bg-[var(--color-border)]",
+    circle: "border-edge bg-surface-tertiary text-content-muted",
+    line: "bg-edge",
   },
   running: {
     circle: "border-blue-500 bg-blue-500/20 text-blue-400 ring-2 ring-blue-500/30",
-    line: "bg-[var(--color-border)]",
+    line: "bg-edge",
   },
   completed: {
     circle: "border-green-500 bg-green-500/20 text-green-400",
@@ -26,8 +26,8 @@ const statusStyles: Record<string, { circle: string; line: string }> = {
     line: "bg-red-500",
   },
   skipped: {
-    circle: "border-[var(--color-border)] bg-[var(--color-bg-tertiary)] text-[var(--color-text-muted)]",
-    line: "bg-[var(--color-border)]",
+    circle: "border-edge bg-surface-tertiary text-content-muted",
+    line: "bg-edge",
   },
 };
 
@@ -58,11 +58,11 @@ export function StepProgress({ steps, currentStep }: StepProgressProps) {
                     step.number
                   )}
                 </div>
-                <span className="mt-1.5 text-[10px] text-[var(--color-text-muted)] text-center max-w-[80px] leading-tight">
+                <span className="mt-1.5 text-[10px] text-content-muted text-center max-w-[80px] leading-tight">
                   {step.label}
                 </span>
                 {step.costUsd !== undefined && step.costUsd > 0 && (
-                  <span className="mt-0.5 text-[9px] text-[var(--color-terminal-cost)]">
+                  <span className="mt-0.5 text-[9px] text-terminal-cost">
                     ${step.costUsd.toFixed(3)}
                   </span>
                 )}
@@ -73,7 +73,7 @@ export function StepProgress({ steps, currentStep }: StepProgressProps) {
                 <div
                   className={cn(
                     "flex-1 h-0.5 mx-1",
-                    step.status === "completed" ? styles.line : "bg-[var(--color-border)]",
+                    step.status === "completed" ? styles.line : "bg-edge",
                   )}
                 />
               )}

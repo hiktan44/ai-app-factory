@@ -16,7 +16,7 @@ export function CostTracker({ steps, totalCost }: CostTrackerProps) {
 
   return (
     <Card className="p-4">
-      <h3 className="text-sm font-medium text-[var(--color-text-primary)] mb-3">
+      <h3 className="text-sm font-medium text-content mb-3">
         \ud83d\udcb0 Maliyet Takibi
       </h3>
       <div className="space-y-2">
@@ -25,17 +25,17 @@ export function CostTracker({ steps, totalCost }: CostTrackerProps) {
             key={step.number}
             className="flex items-center justify-between text-xs"
           >
-            <span className="text-[var(--color-text-secondary)]">
+            <span className="text-content-secondary">
               {step.label}
             </span>
-            <span className="text-[var(--color-terminal-cost)] font-mono">
+            <span className="text-terminal-cost font-mono">
               {formatCost(step.costUsd || 0)}
             </span>
           </div>
         ))}
-        <div className="border-t border-[var(--color-border)] pt-2 flex items-center justify-between text-sm font-medium">
-          <span className="text-[var(--color-text-primary)]">Toplam</span>
-          <span className="text-[var(--color-terminal-cost)] font-mono">
+        <div className="border-t border-edge pt-2 flex items-center justify-between text-sm font-medium">
+          <span className="text-content">Toplam</span>
+          <span className="text-terminal-cost font-mono">
             {formatCost(totalCost)}
           </span>
         </div>

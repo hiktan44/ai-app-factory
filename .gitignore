@@ -8,6 +8,9 @@ node_modules/
 dist/
 build/
 
+# Secrets
+settings.json
+
 # Web UI
 web/.next/
 web/node_modules/

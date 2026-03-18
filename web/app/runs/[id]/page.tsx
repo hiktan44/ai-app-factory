@@ -53,9 +53,9 @@ export default function RunDetailPage({
   if (loading && !run) {
     return (
       <div className="space-y-6">
-        <div className="h-20 bg-[var(--color-bg-card)] rounded-xl animate-pulse" />
-        <div className="h-12 bg-[var(--color-bg-card)] rounded-xl animate-pulse" />
-        <div className="h-[500px] bg-[var(--color-bg-card)] rounded-xl animate-pulse" />
+        <div className="h-20 bg-surface-card rounded-xl animate-pulse" />
+        <div className="h-12 bg-surface-card rounded-xl animate-pulse" />
+        <div className="h-[500px] bg-surface-card rounded-xl animate-pulse" />
       </div>
     );
   }

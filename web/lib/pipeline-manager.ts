@@ -44,6 +44,34 @@ class PipelineManager {
     return { runId, queued: false };
   }
 
+  async startRunWithSpec(category: string, productSpec: string, appName: string): Promise<{ runId: string; queued: boolean }> {
+    const timestamp = this.formatTimestamp(new Date());
+    const runId = `${category}_${timestamp}`;
+
+    // Pre-create workspace and write the product spec
+    const workspace = path.join(getRunsDir(), runId);
+    fs.mkdirSync(workspace, { recursive: true });
+    fs.writeFileSync(path.join(workspace, "product-spec.md"), productSpec, "utf-8");
+
+    // Write a flag file so orchestrator knows to skip discovery
+    fs.writeFileSync(
+      path.join(workspace, "pre-approved.json"),
+      JSON.stringify({ appName, category, approvedAt: new Date().toISOString() }, null, 2),
+    );
+
+    if (this.isRunning) {
+      this.queue.push({
+        id: runId,
+        category,
+        requestedAt: new Date().toISOString(),
+      });
+      return { runId, queued: true };
+    }
+
+    this.spawnProcess(runId, category);
+    return { runId, queued: false };
+  }
+
   stopRun(runId: string): boolean {
     if (this.currentRunId !== runId || !this.currentProcess) return false;
 

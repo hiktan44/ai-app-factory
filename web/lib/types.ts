@@ -80,3 +80,35 @@ export interface RunStats {
   totalCostUsd: number;
   successRate: number;
 }
+
+export interface IdeaProposal {
+  appName: string;
+  tagline: string;
+  description: string;
+  features: string[];
+  techStack: string[];
+  targetAudience: string;
+  monetization: string;
+  uniqueValue: string;
+}
+
+export type IdeaStatus = "idle" | "generating" | "ready" | "approved" | "rejected" | "building";
+
+export interface IdeaSession {
+  id: string;
+  category: string;
+  status: IdeaStatus;
+  idea: IdeaProposal | null;
+  createdAt: string;
+  approvedAt?: string;
+  runId?: string;
+}
+
+export interface SettingsData {
+  geminiApiKey?: string;
+  githubToken?: string;
+  githubOrg?: string;
+  coolifyApiUrl?: string;
+  coolifyApiToken?: string;
+  coolifyServerId?: string;
+}

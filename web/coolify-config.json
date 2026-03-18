@@ -1,0 +1,60 @@
+{
+  "$schema": "https://coolify.io/schema.json",
+  "name": "ai-app-factory",
+  "description": "AI App Factory - Otonom uygulama üretim hattı Web UI",
+  "build": {
+    "pack": "dockerfile",
+    "dockerfile": "Dockerfile"
+  },
+  "settings": {
+    "is_auto_deploy_enabled": true,
+    "is_preview_deployments_enabled": false,
+    "is_git_submodules_enabled": false,
+    "is_git_lfs_enabled": false
+  },
+  "network": {
+    "ports": {
+      "expose": [3000],
+      "mappings": [
+        {
+          "container": 3000,
+          "host": 3000
+        }
+      ]
+    }
+  },
+  "healthcheck": {
+    "enabled": true,
+    "path": "/api/health",
+    "port": 3000,
+    "interval": 30,
+    "timeout": 10,
+    "retries": 3,
+    "start_period": 15
+  },
+  "environment": {
+    "NODE_ENV": "production",
+    "PORT": "3000",
+    "NEXT_TELEMETRY_DISABLED": "1",
+    "PROJECT_ROOT": "/factory",
+    "GEMINI_API_KEY": "",
+    "ANTHROPIC_API_KEY": "",
+    "GITHUB_TOKEN": "",
+    "GITHUB_ORG": "",
+    "COOLIFY_API_URL": "",
+    "COOLIFY_API_TOKEN": ""
+  },
+  "resources": {
+    "limits": {
+      "cpus": "2",
+      "memory": "2G"
+    }
+  },
+  "persistent_storage": [
+    {
+      "name": "factory-data",
+      "mount_path": "/factory",
+      "description": "Pipeline runs, learnings.json ve orchestrator dosyaları"
+    }
+  ]
+}

@@ -16,12 +16,12 @@ export function RunHeader({ run, onStop }: RunHeaderProps) {
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
       <div>
         <div className="flex items-center gap-3 mb-1">
-          <h1 className="text-xl font-bold text-[var(--color-text-primary)]">
+          <h1 className="text-xl font-bold text-content">
             {run.appName || run.id}
           </h1>
           <Badge status={run.status} label={getStatusLabel(run.status)} />
         </div>
-        <div className="flex items-center gap-4 text-sm text-[var(--color-text-muted)]">
+        <div className="flex items-center gap-4 text-sm text-content-muted">
           <span>{getCategoryLabel(run.category)}</span>
           <span>\u00b7</span>
           <span>{run.startedAt ? formatDate(run.startedAt) : ""}</span>
