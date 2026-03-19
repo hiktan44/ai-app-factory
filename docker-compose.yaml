@@ -38,6 +38,7 @@ services:
       - "traefik.http.routers.https-0-pow0pe99mv2wgcwapdo381oq-web.rule=Host(`uygulama.seymata.com`) && PathPrefix(`/`)"
       - "traefik.http.routers.https-0-pow0pe99mv2wgcwapdo381oq-web.service=http-0-pow0pe99mv2wgcwapdo381oq-web"
       - "traefik.http.routers.https-0-pow0pe99mv2wgcwapdo381oq-web.tls=true"
+      - "traefik.http.routers.https-0-pow0pe99mv2wgcwapdo381oq-web.tls.certresolver=letsencrypt"
       - "traefik.http.routers.https-0-pow0pe99mv2wgcwapdo381oq-web.middlewares=gzip"
     networks:
       - coolify
