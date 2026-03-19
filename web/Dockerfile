@@ -1,12 +1,13 @@
 # ============================================================
 # AI App Factory - Multi-stage Dockerfile
+# Build context: proje kökü (docker-compose.yaml'da context: .)
 # ============================================================
 
 # Stage 1: Dependencies
 FROM node:20-alpine AS deps
 WORKDIR /app
 RUN corepack enable
-COPY package.json pnpm-lock.yaml ./
+COPY web/package.json web/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Stage 2: Build
@@ -14,7 +15,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 RUN corepack enable
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY web/ .
 
 # Build-time env vars (non-secret defaults)
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -40,6 +41,13 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
+# Default prompt dosyaları — ilk deploy'da volume boşsa bunlar kopyalanır
+COPY prompts/ /app/default-prompts/
+
+# Entrypoint script — volume'a default prompts'ları kopyalar
+COPY web/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 # Factory data directories
 # /factory       → project root (volume mounted at runtime)
 # /factory/runs  → persisted via Coolify volume (survives redeploy)
@@ -54,4 +62,5 @@ EXPOSE 3000
 # Coolify polls the container status separately via sentinel.
 HEALTHCHECK NONE
 
-CMD ["node", "server.js"]
+# Entrypoint: default prompts kopyala (boşsa) → sonra node server başlat
+ENTRYPOINT ["/app/entrypoint.sh"]
