@@ -1,34 +1,18 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
-import { getProjectRoot } from "@/lib/file-utils";
+import { readSettings, writeSettings, maskValue, type AppSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
-
-function getSettingsPath(): string {
-  return path.join(getProjectRoot(), "settings.json");
-}
-
-function readSettings(): Record<string, string> {
-  const settingsPath = getSettingsPath();
-  try {
-    if (fs.existsSync(settingsPath)) {
-      return JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
-    }
-  } catch { /* ignore */ }
-  return {};
-}
-
-function maskValue(value: string): string {
-  if (!value || value.length < 8) return value ? "●●●●●●●●" : "";
-  return value.substring(0, 4) + "●".repeat(value.length - 8) + value.substring(value.length - 4);
-}
 
 export async function GET() {
   const settings = readSettings();
   // Return masked values
   return NextResponse.json({
+    anthropicApiKey: maskValue(settings.anthropicApiKey || ""),
     geminiApiKey: maskValue(settings.geminiApiKey || ""),
+    grokApiKey: maskValue(settings.grokApiKey || ""),
+    qwenApiKey: maskValue(settings.qwenApiKey || ""),
+    minimaxApiKey: maskValue(settings.minimaxApiKey || ""),
+    openrouterApiKey: maskValue(settings.openrouterApiKey || ""),
     githubToken: maskValue(settings.githubToken || ""),
     githubOrg: settings.githubOrg || "",
     coolifyApiUrl: settings.coolifyApiUrl || "",
@@ -38,32 +22,18 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const settingsPath = getSettingsPath();
+    const body = await request.json() as Partial<AppSettings>;
     const existing = readSettings();
+    const updated: Partial<AppSettings> = { ...existing };
 
     // Only update non-masked values
-    const updated: Record<string, string> = { ...existing };
-
     for (const [key, value] of Object.entries(body)) {
       if (typeof value === "string" && !value.includes("●")) {
-        updated[key] = value;
+        (updated as Record<string, string>)[key] = value;
       }
     }
 
-    fs.writeFileSync(settingsPath, JSON.stringify(updated, null, 2));
-
-    // Also update .env.local for the web app
-    const envPath = path.join(process.cwd(), ".env.local");
-    const envContent = [
-      `GEMINI_API_KEY=${updated.geminiApiKey || ""}`,
-      `GITHUB_TOKEN=${updated.githubToken || ""}`,
-      `GITHUB_ORG=${updated.githubOrg || ""}`,
-      `COOLIFY_API_URL=${updated.coolifyApiUrl || ""}`,
-      `COOLIFY_API_TOKEN=${updated.coolifyApiToken || ""}`,
-    ].join("\n");
-
-    fs.writeFileSync(envPath, envContent);
+    writeSettings(updated as AppSettings);
 
     return NextResponse.json({ success: true });
   } catch (error) {

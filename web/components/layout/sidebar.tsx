@@ -6,8 +6,10 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: "📊", description: "Genel bakış" },
-  { href: "/new", label: "Yeni Proje", icon: "🚀", description: "Fikir üret & başlat" },
+  { href: "/idea-lab", label: "Idea Lab", icon: "💡", description: "Fikir araştır & geliştir" },
+  { href: "/new", label: "Yeni Proje", icon: "🚀", description: "Kategoriden başlat" },
   { href: "/runs", label: "Pipeline'lar", icon: "⚡", description: "Tüm çalıştırmalar" },
+  { href: "/prompts", label: "Promptlar", icon: "📝", description: "Prompt editörü" },
   { href: "/settings", label: "Ayarlar", icon: "⚙️", description: "API & Deploy" },
 ];
 
