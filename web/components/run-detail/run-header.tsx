@@ -33,6 +33,31 @@ export function RunHeader({ run, onStop, onRestart }: RunHeaderProps) {
         </div>
       </div>
       <div className="flex items-center gap-2">
+        {run.hasProductSpec && (
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                window.location.href = `/api/runs/${run.id}/download?format=md&file=product-spec.md`;
+              }}
+            >
+              ↓ .md
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                window.open(
+                  `/api/runs/${run.id}/download?format=pdf&file=product-spec.md`,
+                  "_blank",
+                );
+              }}
+            >
+              ↓ .pdf
+            </Button>
+          </>
+        )}
         {run.status === "running" && onStop && (
           <Button variant="danger" size="sm" onClick={onStop}>
             Durdur
