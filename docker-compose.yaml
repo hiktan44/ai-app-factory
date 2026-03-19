@@ -12,10 +12,8 @@ services:
     ports:
       - "3000"
     volumes:
-      # Persistent: üretilen app'ler, loglar, assets burada kalır
-      - ai-factory-runs:/factory/runs
-      # Persistent: prompt dosyaları (web UI'dan düzenlenebilir)
-      - ai-factory-prompts:/factory/prompts
+      # Persistent: tüm /factory dizini — settings.json, learnings.json, runs/, prompts/ hepsi korunur
+      - ai-factory-data:/factory
     environment:
       - NODE_ENV=production
       - PROJECT_ROOT=/factory
@@ -48,8 +46,7 @@ networks:
     external: true
 
 volumes:
-  # Named volumes — Coolify bunları deploy'lar arasında korur
-  ai-factory-runs:
-    name: ai-factory-runs
-  ai-factory-prompts:
-    name: ai-factory-prompts
+  # Named volume — deploy'lar arasında tüm factory verisi korunur
+  # (settings.json, learnings.json, runs/, prompts/, logs/)
+  ai-factory-data:
+    name: ai-factory-data
