@@ -50,8 +50,8 @@ VOLUME ["/factory/runs"]
 
 EXPOSE 3000
 
-# Disable HEALTHCHECK — Coolify manages health via its own probe (health_check_enabled).
-# Docker-level healthcheck causes running:unhealthy which blocks Traefik routing.
+# No Docker-level HEALTHCHECK — Traefik blocks traffic to "unhealthy" containers.
+# Coolify polls the container status separately via sentinel.
 HEALTHCHECK NONE
 
 CMD ["node", "server.js"]
