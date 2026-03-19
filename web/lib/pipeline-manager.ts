@@ -3,11 +3,23 @@ import fs from "fs";
 import path from "path";
 import type { QueueItem, WebRunMeta } from "./types";
 import { getProjectRoot, getRunsDir, getOrchestratorPath } from "./file-utils";
+import {
+  ensureSchema,
+  dbUpsertRun,
+  dbUpdateRun,
+  dbGetRunningRun,
+  dbGetQueue,
+  dbEnqueue,
+  dbDequeue,
+  dbRemoveFromQueue,
+  dbClearQueue,
+} from "./db";
 
 class PipelineManager {
   private currentProcess: ChildProcess | null = null;
   private currentRunId: string | null = null;
   private queue: QueueItem[] = [];
+  private initialized = false;
 
   constructor() {
     // Cleanup on server shutdown
@@ -15,8 +27,27 @@ class PipelineManager {
     process.on("SIGINT", cleanup);
     process.on("SIGTERM", cleanup);
 
-    // Detect orphaned runs on startup
-    this.detectOrphanedRuns();
+    // Async init: schema + orphan detection + queue recovery
+    this.init().catch((err) => console.error("[PipelineManager] init error:", err));
+  }
+
+  private async init(): Promise<void> {
+    if (this.initialized) return;
+    this.initialized = true;
+
+    // 1. Ensure DB schema exists
+    await ensureSchema();
+
+    // 2. Detect orphaned runs from previous server instance
+    await this.detectOrphanedRuns();
+
+    // 3. Reload persisted queue from DB
+    await this.reloadQueue();
+
+    // 4. If nothing is running, start processing queue
+    if (!this.isRunning && this.queue.length > 0) {
+      await this.processQueue();
+    }
   }
 
   get isRunning(): boolean {
@@ -31,12 +62,18 @@ class PipelineManager {
     const timestamp = this.formatTimestamp(new Date());
     const runId = `${category}_${timestamp}`;
 
+    // Persist to DB immediately
+    await dbUpsertRun({ id: runId, category, status: "queued" });
+
     if (this.isRunning) {
-      this.queue.push({
+      const item: QueueItem = {
         id: runId,
         category,
         requestedAt: new Date().toISOString(),
-      });
+      };
+      this.queue.push(item);
+      // Persist queue item to DB
+      await dbEnqueue({ id: runId, run_id: runId, category });
       return { runId, queued: true };
     }
 
@@ -59,12 +96,17 @@ class PipelineManager {
       JSON.stringify({ appName, category, approvedAt: new Date().toISOString() }, null, 2),
     );
 
+    // Persist to DB
+    await dbUpsertRun({ id: runId, category, status: "queued", has_spec: true });
+
     if (this.isRunning) {
-      this.queue.push({
+      const item: QueueItem = {
         id: runId,
         category,
         requestedAt: new Date().toISOString(),
-      });
+      };
+      this.queue.push(item);
+      await dbEnqueue({ id: runId, run_id: runId, category });
       return { runId, queued: true };
     }
 
@@ -88,12 +130,13 @@ class PipelineManager {
     }, 5000);
 
     this.updateMeta(runId, { status: "stopped", completedAt: new Date().toISOString() });
+    dbUpdateRun(runId, { status: "stopped", completed_at: new Date().toISOString() }).catch(() => {});
 
     this.currentProcess = null;
     this.currentRunId = null;
 
     // Process next in queue
-    this.processQueue();
+    this.processQueue().catch(() => {});
 
     return true;
   }
@@ -106,6 +149,7 @@ class PipelineManager {
     const idx = this.queue.findIndex((q) => q.id === runId);
     if (idx === -1) return false;
     this.queue.splice(idx, 1);
+    dbRemoveFromQueue(runId).catch(() => {});
     return true;
   }
 
@@ -133,14 +177,21 @@ class PipelineManager {
         ...process.env,
         HOME: process.env.HOME || "",
         PATH: process.env.PATH || "",
+        RUN_ID: runId,
       },
       stdio: ["ignore", "pipe", "pipe"],
       detached: false,
     });
 
-    // Update PID in meta
+    // Update PID in meta and DB
     meta.pid = child.pid || null;
     fs.writeFileSync(path.join(workspace, "web-run-meta.json"), JSON.stringify(meta, null, 2));
+
+    dbUpdateRun(runId, {
+      status: "running",
+      started_at: meta.startedAt,
+      pid: meta.pid ?? undefined,
+    }).catch(() => {});
 
     this.currentProcess = child;
     this.currentRunId = runId;
@@ -158,17 +209,24 @@ class PipelineManager {
     });
 
     child.on("exit", (code) => {
+      const status = code === 0 ? "completed" : "failed";
       this.updateMeta(runId, {
-        status: code === 0 ? "completed" : "failed",
+        status,
         completedAt: new Date().toISOString(),
         exitCode: code,
       });
+
+      dbUpdateRun(runId, {
+        status,
+        completed_at: new Date().toISOString(),
+        exit_code: code ?? undefined,
+      }).catch(() => {});
 
       this.currentProcess = null;
       this.currentRunId = null;
 
       // Process next in queue
-      this.processQueue();
+      this.processQueue().catch(() => {});
     });
 
     child.on("error", (error) => {
@@ -178,18 +236,51 @@ class PipelineManager {
         completedAt: new Date().toISOString(),
       });
 
+      dbUpdateRun(runId, {
+        status: "failed",
+        completed_at: new Date().toISOString(),
+      }).catch(() => {});
+
       this.currentProcess = null;
       this.currentRunId = null;
 
-      this.processQueue();
+      this.processQueue().catch(() => {});
     });
   }
 
-  private processQueue(): void {
+  private async processQueue(): Promise<void> {
     if (this.isRunning || this.queue.length === 0) return;
+
+    // Try in-memory queue first
     const next = this.queue.shift();
     if (next) {
+      // Remove from DB queue
+      await dbRemoveFromQueue(next.id);
       this.spawnProcess(next.id, next.category);
+    }
+  }
+
+  private async reloadQueue(): Promise<void> {
+    // Reload queue items from DB that are still queued
+    const dbQueue = await dbGetQueue();
+    for (const item of dbQueue) {
+      const alreadyInMemory = this.queue.some((q) => q.id === item.run_id);
+      if (!alreadyInMemory) {
+        // Check if the run workspace still exists (so we can actually resume it)
+        const workspace = path.join(getRunsDir(), item.run_id);
+        if (fs.existsSync(workspace)) {
+          this.queue.push({
+            id: item.run_id,
+            category: item.category,
+            requestedAt: item.requested_at,
+          });
+          console.log(`[PipelineManager] Reloaded queued run from DB: ${item.run_id}`);
+        } else {
+          // Workspace gone (container restart wiped it?) — remove from queue
+          await dbRemoveFromQueue(item.run_id);
+          await dbUpdateRun(item.run_id, { status: "stopped", completed_at: new Date().toISOString() });
+        }
+      }
     }
   }
 
@@ -205,7 +296,36 @@ class PipelineManager {
     }
   }
 
-  private detectOrphanedRuns(): void {
+  private async detectOrphanedRuns(): Promise<void> {
+    // Check DB for any "running" runs that were left over from previous instance
+    const running = await dbGetRunningRun();
+    if (running) {
+      // Check if the PID is actually alive in THIS container instance
+      let isAlive = false;
+      if (running.pid) {
+        try {
+          process.kill(running.pid, 0);
+          isAlive = true;
+        } catch {
+          isAlive = false;
+        }
+      }
+
+      if (!isAlive) {
+        // Process is dead — mark as stopped
+        await dbUpdateRun(running.id, {
+          status: "stopped",
+          completed_at: new Date().toISOString(),
+        });
+        this.updateMeta(running.id, {
+          status: "stopped",
+          completedAt: new Date().toISOString(),
+        });
+        console.log(`[PipelineManager] Marked orphaned run as stopped: ${running.id}`);
+      }
+    }
+
+    // Also scan filesystem for "running" meta files
     const runsDir = getRunsDir();
     if (!fs.existsSync(runsDir)) return;
 
@@ -219,11 +339,8 @@ class PipelineManager {
         try {
           const meta = JSON.parse(fs.readFileSync(metaPath, "utf-8")) as WebRunMeta;
           if (meta.status === "running" && meta.pid) {
-            // Check if process is still alive
             try {
               process.kill(meta.pid, 0);
-              // Process is alive — it might be from a different server instance
-              // Mark as stopped to be safe
             } catch {
               // Process is dead — mark as stopped
               this.updateMeta(entry.name, {
@@ -263,6 +380,10 @@ class PipelineManager {
           status: "stopped",
           completedAt: new Date().toISOString(),
         });
+        dbUpdateRun(this.currentRunId, {
+          status: "stopped",
+          completed_at: new Date().toISOString(),
+        }).catch(() => {});
       }
     }
   }

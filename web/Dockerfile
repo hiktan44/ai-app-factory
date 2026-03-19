@@ -40,8 +40,13 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
-# Factory data volume mount point
-RUN mkdir -p /factory
+# Factory data directories
+# /factory       → project root (volume mounted at runtime)
+# /factory/runs  → persisted via Coolify volume (survives redeploy)
+RUN mkdir -p /factory/runs /factory/prompts /factory/logs
+
+# Mark /factory/runs as a volume so Docker knows it is persistent data
+VOLUME ["/factory/runs"]
 
 EXPOSE 3000
 

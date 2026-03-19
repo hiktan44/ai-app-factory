@@ -4,10 +4,12 @@ services:
     ports:
       - "3000:3000"
     volumes:
+      # Full factory mount for local development
       - ..:/factory
     environment:
       - NODE_ENV=production
       - PROJECT_ROOT=/factory
+      - DATABASE_URL=${DATABASE_URL}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - GITHUB_TOKEN=${GITHUB_TOKEN}
@@ -21,3 +23,18 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+
+  # Local dev PostgreSQL (optional, use DATABASE_URL to connect)
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: factory
+      POSTGRES_USER: factory
+      POSTGRES_PASSWORD: factory_secret_2024
+    volumes:
+      - factory_db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  factory_db_data:
