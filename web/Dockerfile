@@ -50,8 +50,8 @@ VOLUME ["/factory/runs"]
 
 EXPOSE 3000
 
-# Health check for Coolify / Docker
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-  CMD curl -f http://localhost:3000/api/health || exit 1
+# Disable HEALTHCHECK — Coolify manages health via its own probe (health_check_enabled).
+# Docker-level healthcheck causes running:unhealthy which blocks Traefik routing.
+HEALTHCHECK NONE
 
 CMD ["node", "server.js"]
