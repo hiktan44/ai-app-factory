@@ -202,6 +202,28 @@ call_claude() {
   return 0
 }
 
+# ─── Non-Claude provider çıktısını dosyaya yaz ───────────────
+# Non-Claude provider'lar (Gemini, Qwen, OpenRouter) sadece text döndürür
+# ve workspace'e dosya yazmaz. Bu fonksiyon JSON çıktısından text'i
+# çıkarıp beklenen dosyaya yazar.
+extract_and_write() {
+  local json_file="$1"
+  local target_file="$2"
+
+  if [ ! -f "$json_file" ]; then return 1; fi
+
+  local text
+  text=$(jq -r '.result // empty' "$json_file" 2>/dev/null)
+
+  if [ -n "$text" ]; then
+    mkdir -p "$(dirname "$target_file")"
+    echo "$text" > "$target_file"
+    log "Post-process: $(basename "$target_file") yazıldı ($(wc -c < "$target_file") byte)"
+    return 0
+  fi
+  return 1
+}
+
 CATEGORY="${1:?Kullanım: ./orchestrator.sh <kategori>}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 # Web UI'dan RUN_ID env değişkeni geçilmişse onu kullan, yoksa üret
@@ -378,6 +400,12 @@ Görev:
 
 Önemli: Çıktıyı mutlaka ${WORKSPACE}/product-spec.md dosyasına yaz." \
     "gemini grok openrouter claude"
+
+  # Post-processing: Non-Claude provider product-spec.md yazmaz
+  if [ ! -f "${WORKSPACE}/product-spec.md" ] || [ ! -s "${WORKSPACE}/product-spec.md" ]; then
+    log "product-spec.md bulunamadı, post-processing ile çıkarılıyor..."
+    extract_and_write "${WORKSPACE}/logs/discover.json" "${WORKSPACE}/product-spec.md"
+  fi
 fi
 
 # ─── ADIM 2: MİMARİ ──────────────────────────────────────────
@@ -404,6 +432,12 @@ Görev:
    - tech_decisions.md" \
   "claude openrouter gemini"
 
+# Post-processing: Non-Claude provider mimari dosyaları yazmaz
+if [ ! -f "${WORKSPACE}/architecture/file_structure.md" ]; then
+  log "Mimari dosyaları bulunamadı, post-processing ile çıkarılıyor..."
+  extract_and_write "${WORKSPACE}/logs/architecture.json" "${WORKSPACE}/architecture/architecture-plan.md"
+fi
+
 # ─── ADIM 3: KODLAMA ─────────────────────────────────────────
 
 adim_baslik "KODLAMA (Build)"
@@ -422,7 +456,7 @@ Görev:
 3. ${WORKSPACE}/app/ dizinine tam çalışan bir Next.js uygulaması kodla
 4. Kodlama bitince ${WORKSPACE}/app/ dizininde 'pnpm run build' çalıştır
 5. Her dosyayı yazarken import/export tutarlılığını kontrol et" \
-  "claude openrouter"
+  "claude"
 
 # ─── ADIM 4: DOĞRULAMA ───────────────────────────────────────
 
@@ -451,7 +485,7 @@ Görev:
 3. Hata varsa analiz et ve düzelt
 4. Build başarılı olursa ${WORKSPACE}/build-status.txt dosyasına 'BUILD_SUCCESS' yaz
 5. Bu ${verify_attempt}. deneme, toplam ${MAX_VERIFY_ATTEMPTS} hakkın var" \
-    "claude openrouter" \
+    "claude" \
     "${devam_flag}" || true
 
   if [ -f "${WORKSPACE}/build-status.txt" ] && grep -q "BUILD_SUCCESS" "${WORKSPACE}/build-status.txt" 2>/dev/null; then
@@ -483,6 +517,12 @@ Görev:
 5. KRİTİK sorunları doğrudan kodda düzelt
 6. Düzeltme yaptıysan tekrar 'pnpm run build' çalıştır" \
   "gemini claude openrouter" || true
+
+# Post-processing: Non-Claude provider review-report.md yazmaz
+if [ ! -f "${WORKSPACE}/review-report.md" ]; then
+  log "review-report.md bulunamadı, post-processing ile çıkarılıyor..."
+  extract_and_write "${WORKSPACE}/logs/review.json" "${WORKSPACE}/review-report.md"
+fi
 
 # ─── ADIM 6: GÖRSEL VARLIKLAR ────────────────────────────────
 
@@ -523,6 +563,12 @@ Görev:
    - changelog.md
 3. Hem İngilizce hem Türkçe versiyonlar oluştur" \
   "qwen gemini openrouter claude" || true
+
+# Post-processing: Non-Claude provider marketing dosyaları yazmaz
+if [ ! -f "${WORKSPACE}/marketing/landing_page_copy.md" ]; then
+  log "Marketing dosyaları bulunamadı, post-processing ile çıkarılıyor..."
+  extract_and_write "${WORKSPACE}/logs/marketing.json" "${WORKSPACE}/marketing/marketing-content.md"
+fi
 
 # ─── ADIM 8: EKRAN GÖRÜNTÜLERİ ──────────────────────────────
 
@@ -568,6 +614,12 @@ Görev:
 8. Pipeline raporunu ${WORKSPACE}/pipeline-report.json dosyasına yaz
 9. Deploy dosyalarının kopyalarını ${WORKSPACE}/deploy/ dizinine de koy" \
   "gemini claude openrouter" || true
+
+# Post-processing: Non-Claude provider deploy dosyaları yazmaz
+if [ ! -f "${WORKSPACE}/deploy/Dockerfile" ] && [ ! -f "${WORKSPACE}/app/Dockerfile" ]; then
+  log "Deploy dosyaları bulunamadı, post-processing ile çıkarılıyor..."
+  extract_and_write "${WORKSPACE}/logs/package.json" "${WORKSPACE}/deploy/package-notes.md"
+fi
 
 # ─── ADIM 10: DEPLOY (Coolify'a Yükle) ──────────────────────
 
@@ -683,6 +735,18 @@ Görev:
 5. Öğrenilenleri çıkar ve ${LEARNINGS_FILE} dosyasını güncelle
 6. total_runs artır, last_updated güncelle" \
   "gemini openrouter claude" || true
+
+# Post-processing: Non-Claude provider learnings.json'ı doğrudan güncelleyemez
+if [ -f "${WORKSPACE}/logs/update_learnings.json" ]; then
+  local_learnings_text=$(jq -r '.result // empty' "${WORKSPACE}/logs/update_learnings.json" 2>/dev/null)
+  if [ -n "$local_learnings_text" ]; then
+    # JSON olarak geçerliyse learnings.json'a yaz
+    echo "$local_learnings_text" | jq '.' > /tmp/learnings_check.json 2>/dev/null && \
+      cp /tmp/learnings_check.json "${LEARNINGS_FILE}" && \
+      log "Learnings güncellendi (post-process)" || \
+      log "UYARI: Learnings post-process JSON geçersiz, atlanıyor"
+  fi
+fi
 
 # ─── ÖZET ────────────────────────────────────────────────────
 
