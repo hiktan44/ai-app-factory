@@ -209,26 +209,36 @@ call_claude() {
   log "  Çalışma dizini: ${work_dir}"
 
   if [ "$use_gosu" = true ]; then
-    # gosu ile çalıştır — prompt'ları dosyaya yaz (tırnak kaçırma sorunlarını önle)
+    # gosu ile çalıştır — prompt'ları ve komutu dosyaya yaz (shell escaping sorunlarını tamamen önle)
     local prompt_file="${output_file}.prompt"
     local sysprompt_file="${output_file}.sysprompt"
+    local runner_script="${output_file}.runner.sh"
+
     printf '%s' "${user_prompt}" > "${prompt_file}"
     printf '%s' "${system_prompt}" > "${sysprompt_file}"
-    chown factory:factory "${prompt_file}" "${sysprompt_file}" 2>/dev/null || true
+
+    # Runner script: factory kullanıcısı olarak çalışacak
+    cat > "${runner_script}" <<RUNNER_EOF
+#!/bin/sh
+cd "${work_dir}" || exit 1
+exec claude -p "\$(cat '${prompt_file}')" \\
+  --append-system-prompt "\$(cat '${sysprompt_file}')" \\
+  --dangerously-skip-permissions \\
+  --output-format json \\
+  ${max_turns_flag} \\
+  ${extra_flags}
+RUNNER_EOF
+    chmod +x "${runner_script}"
+    chown factory:factory "${prompt_file}" "${sysprompt_file}" "${runner_script}" 2>/dev/null || true
 
     HOME=/home/factory \
     ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
     PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
-    gosu factory sh -c "cd '${work_dir}' && claude -p \"\$(cat '${prompt_file}')\" \
-      --append-system-prompt \"\$(cat '${sysprompt_file}')\" \
-      --dangerously-skip-permissions \
-      --output-format json \
-      ${max_turns_flag} \
-      ${extra_flags}" \
+    gosu factory "${runner_script}" \
       > "${output_file}" 2>"${stderr_file}" || exit_code=$?
 
-    # Geçici prompt dosyalarını temizle
-    rm -f "${prompt_file}" "${sysprompt_file}" 2>/dev/null || true
+    # Geçici dosyaları temizle
+    rm -f "${prompt_file}" "${sysprompt_file}" "${runner_script}" 2>/dev/null || true
   else
     claude -p "${user_prompt}" \
       --append-system-prompt "${system_prompt}" \
