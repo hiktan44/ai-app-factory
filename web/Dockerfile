@@ -44,7 +44,14 @@ COPY --from=builder /app/public ./public
 # Default prompt dosyaları — ilk deploy'da volume boşsa bunlar kopyalanır
 COPY prompts/ /app/default-prompts/
 
-# Entrypoint script — volume'a default prompts'ları kopyalar
+# Pipeline execution dosyaları — orchestrator ve bağımlılıkları
+COPY orchestrator.sh /app/default-orchestrator.sh
+COPY validate-run.sh /app/default-validate-run.sh
+COPY CLAUDE.md /app/default-CLAUDE.md
+COPY learnings.json /app/default-learnings.json
+RUN chmod +x /app/default-orchestrator.sh /app/default-validate-run.sh
+
+# Entrypoint script — volume'a default dosyaları kopyalar, settings.json oluşturur
 COPY web/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
