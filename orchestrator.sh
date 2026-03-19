@@ -176,29 +176,89 @@ call_claude() {
   local output_file="$3"
   local extra_flags="${4:-}"
 
+  # API key kontrolü
+  if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+    log "HATA: ANTHROPIC_API_KEY boş — Claude CLI çalışamaz"
+    return 1
+  fi
+
+  local stderr_file="${output_file}.stderr"
+  local exit_code=0
+
+  log "Claude CLI başlatılıyor (output: $(basename "$output_file"))..."
+  log "  Prompt uzunluğu: ${#user_prompt} karakter"
+
+  # --max-turns: Claude CLI'ın yeterince çalışmasını sağla
+  # --continue flag'i varsa max-turns ekleme (continue kendi turunu yönetir)
+  local max_turns_flag=""
+  if [[ "$extra_flags" != *"--continue"* ]]; then
+    max_turns_flag="--max-turns 25"
+  fi
+
   if [ -n "$extra_flags" ]; then
     claude -p "${user_prompt}" \
       --append-system-prompt "${system_prompt}" \
       --dangerously-skip-permissions \
       --output-format json \
+      ${max_turns_flag} \
       ${extra_flags} \
-      > "${output_file}" 2>/dev/null || true
+      > "${output_file}" 2>"${stderr_file}" || exit_code=$?
   else
     claude -p "${user_prompt}" \
       --append-system-prompt "${system_prompt}" \
       --dangerously-skip-permissions \
       --output-format json \
-      > "${output_file}" 2>/dev/null || true
+      ${max_turns_flag} \
+      > "${output_file}" 2>"${stderr_file}" || exit_code=$?
   fi
 
-  local result
-  result=$(cat "${output_file}" 2>/dev/null || echo '{}')
-  local hata
-  hata=$(echo "$result" | jq -r '.is_error // false' 2>/dev/null || echo "false")
+  # stderr'i logla (debug için)
+  if [ -f "${stderr_file}" ] && [ -s "${stderr_file}" ]; then
+    log "Claude CLI stderr: $(head -5 "${stderr_file}")"
+  fi
 
-  if [ "$hata" = "true" ]; then
+  # Exit code kontrolü
+  if [ $exit_code -ne 0 ]; then
+    log "HATA: Claude CLI exit code: ${exit_code}"
     return 1
   fi
+
+  # Çıktı dosyası var mı ve boş değil mi?
+  if [ ! -f "${output_file}" ] || [ ! -s "${output_file}" ]; then
+    log "HATA: Claude CLI çıktı dosyası boş veya yok: ${output_file}"
+    return 1
+  fi
+
+  # JSON parse edilebilir mi?
+  local result
+  result=$(cat "${output_file}" 2>/dev/null || echo '')
+  if [ -z "$result" ]; then
+    log "HATA: Claude CLI çıktısı okunamadı"
+    return 1
+  fi
+
+  # is_error kontrolü
+  local hata
+  hata=$(echo "$result" | jq -r '.is_error // false' 2>/dev/null || echo "false")
+  if [ "$hata" = "true" ]; then
+    local err_msg
+    err_msg=$(echo "$result" | jq -r '.result // "bilinmeyen hata"' 2>/dev/null || echo "")
+    log "HATA: Claude CLI is_error=true: ${err_msg}"
+    return 1
+  fi
+
+  # result alanı var mı ve anlamlı mı? (en az 100 karakter)
+  local result_text
+  result_text=$(echo "$result" | jq -r '.result // ""' 2>/dev/null || echo "")
+  local result_len=${#result_text}
+  if [ $result_len -lt 50 ]; then
+    log "UYARI: Claude CLI çıktısı çok kısa (${result_len} karakter) — muhtemelen gerçek çalışma yapılmadı"
+    log "Çıktı: ${result_text:0:200}"
+    # Çok kısa çıktıyı başarısız say (gerçek çalışma en az birkaç yüz karakter üretir)
+    return 1
+  fi
+
+  log "Claude CLI başarılı (${result_len} karakter çıktı)"
   return 0
 }
 
@@ -329,6 +389,27 @@ run_step_smart() {
     return 1
   fi
 
+  # Minimum süre kontrolü — Claude ile gerçek bir çalışma en az 10 saniye sürer
+  # Gemini/Qwen API çağrıları daha hızlı olabilir (3-5s normal)
+  local min_sure=5
+  if [ "$kullanilan_provider" = "claude" ]; then
+    min_sure=10
+  fi
+
+  if [ $sure -lt $min_sure ]; then
+    log "UYARI: ${adim_adi} çok hızlı tamamlandı (${sure}s < ${min_sure}s minimum) — muhtemelen gerçek çalışma yapılmadı"
+    # Çıktı dosyasının içeriğini kontrol et
+    local output_size=0
+    if [ -f "${json_dosya}" ]; then
+      output_size=$(wc -c < "${json_dosya}" 2>/dev/null || echo "0")
+    fi
+    log "  Çıktı dosyası boyutu: ${output_size} byte"
+    if [ "$output_size" -lt 200 ]; then
+      log "HATA: ${adim_adi} çok kısa sürede çok az çıktı üretti — başarısız sayılıyor"
+      return 1
+    fi
+  fi
+
   log "Tamamlandı: ${adim_adi} via ${kullanilan_provider} (${sure}s)"
 
   # Maliyet hesaplama (sadece claude için)
@@ -375,6 +456,62 @@ log "  QWEN:      $([ -n "${QWEN_API_KEY:-}" ] && echo 'YÜKLENDİ' || echo 'YOK
 log "  OPENROUTER:$([ -n "${OPENROUTER_API_KEY:-}" ] && echo 'YÜKLENDİ' || echo 'YOK')"
 log ""
 
+# ─── Claude CLI Ön Kontrol (Preflight) ───────────────────────
+log "Claude CLI ön kontrol başlıyor..."
+CLAUDE_CLI_OK=false
+
+# 1. Claude CLI mevcut mu?
+if command -v claude &>/dev/null; then
+  CLAUDE_VERSION=$(claude --version 2>/dev/null || echo "bilinmiyor")
+  log "  Claude CLI sürüm: ${CLAUDE_VERSION}"
+else
+  log "HATA: Claude CLI bulunamadı!"
+fi
+
+# 2. ANTHROPIC_API_KEY var mı?
+if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+  log "KRİTİK HATA: ANTHROPIC_API_KEY yüklenmedi — pipeline çalışamaz!"
+  log "Lütfen .env veya Coolify ortam değişkenlerinde ANTHROPIC_API_KEY tanımlayın."
+  # Build/verify adımları Claude gerektiriyor, key olmadan devam etmenin anlamı yok
+  echo "ANTHROPIC_API_KEY eksik" > "${WORKSPACE}/build-status.txt"
+else
+  log "  ANTHROPIC_API_KEY: ...${ANTHROPIC_API_KEY: -8} (son 8 karakter)"
+
+  # 3. Basit bir bağlantı testi yap (hızlı, minimal prompt)
+  log "  Claude CLI bağlantı testi yapılıyor..."
+  local_test_file="${WORKSPACE}/logs/preflight-test.json"
+  local_test_stderr="${WORKSPACE}/logs/preflight-test.stderr"
+  local_test_exit=0
+
+  claude -p "Say only: OK" \
+    --dangerously-skip-permissions \
+    --output-format json \
+    --max-turns 1 \
+    > "${local_test_file}" 2>"${local_test_stderr}" || local_test_exit=$?
+
+  if [ $local_test_exit -ne 0 ]; then
+    log "  UYARI: Claude CLI bağlantı testi başarısız (exit code: ${local_test_exit})"
+    if [ -f "${local_test_stderr}" ] && [ -s "${local_test_stderr}" ]; then
+      log "  stderr: $(cat "${local_test_stderr}" | head -3)"
+    fi
+    log "  Pipeline devam edecek ama Claude adımları başarısız olabilir."
+  else
+    local_test_result=$(jq -r '.result // ""' "${local_test_file}" 2>/dev/null || echo "")
+    if [ -n "$local_test_result" ] && [ ${#local_test_result} -gt 0 ]; then
+      CLAUDE_CLI_OK=true
+      log "  Claude CLI bağlantı testi BAŞARILI ✓"
+    else
+      log "  UYARI: Claude CLI yanıt verdi ama çıktı boş"
+      if [ -f "${local_test_stderr}" ] && [ -s "${local_test_stderr}" ]; then
+        log "  stderr: $(cat "${local_test_stderr}" | head -3)"
+      fi
+    fi
+  fi
+fi
+
+log "Claude CLI durumu: $([ "$CLAUDE_CLI_OK" = true ] && echo 'HAZIR ✓' || echo 'SORUNLU ✗')"
+log ""
+
 # pre-approved.json varsa keşif adımını atla
 PRE_APPROVED="${WORKSPACE}/pre-approved.json"
 
@@ -412,7 +549,7 @@ fi
 
 adim_baslik "MİMARİ (Tasarım)"
 
-# Claude kritik — mimari kararlar için en iyisi
+# Claude zorunlu — mimari dosyaları dosya sisteme yazar
 run_step_smart "architecture" \
   "${PROMPTS_DIR}/architecture.md" \
   "Workspace dizini: ${WORKSPACE}
@@ -430,7 +567,7 @@ Görev:
    - component_tree.md
    - dependencies.json
    - tech_decisions.md" \
-  "claude openrouter gemini"
+  "claude"
 
 # Post-processing: Non-Claude provider mimari dosyaları yazmaz
 if [ ! -f "${WORKSPACE}/architecture/file_structure.md" ]; then
