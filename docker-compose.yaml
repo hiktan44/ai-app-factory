@@ -30,9 +30,15 @@ services:
     restart: unless-stopped
     labels:
       - coolify.managed=true
-      # Traefik: sadece service port tanımı — router Coolify tarafından otomatik üretilir
       - "traefik.enable=true"
+      # Service definition (shared by both HTTP and HTTPS routers)
       - "traefik.http.services.http-0-pow0pe99mv2wgcwapdo381oq-web.loadbalancer.server.port=3000"
+      # HTTPS router (Coolify generates HTTP router but not HTTPS)
+      - "traefik.http.routers.https-0-pow0pe99mv2wgcwapdo381oq-web.entryPoints=https"
+      - "traefik.http.routers.https-0-pow0pe99mv2wgcwapdo381oq-web.rule=Host(`uygulama.seymata.com`) && PathPrefix(`/`)"
+      - "traefik.http.routers.https-0-pow0pe99mv2wgcwapdo381oq-web.service=http-0-pow0pe99mv2wgcwapdo381oq-web"
+      - "traefik.http.routers.https-0-pow0pe99mv2wgcwapdo381oq-web.tls=true"
+      - "traefik.http.routers.https-0-pow0pe99mv2wgcwapdo381oq-web.middlewares=gzip"
     networks:
       - coolify
 
