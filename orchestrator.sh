@@ -198,28 +198,44 @@ call_claude() {
   # Claude CLI --dangerously-skip-permissions root ile çalışmaz.
   # gosu varsa (Docker container) non-root 'factory' kullanıcısıyla çalıştır.
   # gosu yoksa (lokal geliştirme) doğrudan çalıştır.
-  local claude_cmd="claude"
+  local use_gosu=false
   if command -v gosu &>/dev/null && [ "$(id -u)" = "0" ]; then
-    claude_cmd="gosu factory claude"
+    use_gosu=true
     log "  Root tespit edildi — gosu factory ile çalıştırılacak"
   fi
 
-  if [ -n "$extra_flags" ]; then
-    HOME=/home/factory ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
-    $claude_cmd -p "${user_prompt}" \
+  # Working directory: WORKSPACE varsa orayı kullan (Claude dosyalara erişebilsin)
+  local work_dir="${WORKSPACE:-$(pwd)}"
+  log "  Çalışma dizini: ${work_dir}"
+
+  if [ "$use_gosu" = true ]; then
+    # gosu ile çalıştır — prompt'ları dosyaya yaz (tırnak kaçırma sorunlarını önle)
+    local prompt_file="${output_file}.prompt"
+    local sysprompt_file="${output_file}.sysprompt"
+    printf '%s' "${user_prompt}" > "${prompt_file}"
+    printf '%s' "${system_prompt}" > "${sysprompt_file}"
+    chown factory:factory "${prompt_file}" "${sysprompt_file}" 2>/dev/null || true
+
+    HOME=/home/factory \
+    ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
+    PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+    gosu factory sh -c "cd '${work_dir}' && claude -p \"\$(cat '${prompt_file}')\" \
+      --append-system-prompt \"\$(cat '${sysprompt_file}')\" \
+      --dangerously-skip-permissions \
+      --output-format json \
+      ${max_turns_flag} \
+      ${extra_flags}" \
+      > "${output_file}" 2>"${stderr_file}" || exit_code=$?
+
+    # Geçici prompt dosyalarını temizle
+    rm -f "${prompt_file}" "${sysprompt_file}" 2>/dev/null || true
+  else
+    claude -p "${user_prompt}" \
       --append-system-prompt "${system_prompt}" \
       --dangerously-skip-permissions \
       --output-format json \
       ${max_turns_flag} \
       ${extra_flags} \
-      > "${output_file}" 2>"${stderr_file}" || exit_code=$?
-  else
-    HOME=/home/factory ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
-    $claude_cmd -p "${user_prompt}" \
-      --append-system-prompt "${system_prompt}" \
-      --dangerously-skip-permissions \
-      --output-format json \
-      ${max_turns_flag} \
       > "${output_file}" 2>"${stderr_file}" || exit_code=$?
   fi
 
@@ -258,18 +274,40 @@ call_claude() {
     return 1
   fi
 
-  # result alanı var mı ve anlamlı mı? (en az 100 karakter)
+  # JSON çıktı boyutunu ve yapısını logla (debug)
+  local json_size
+  json_size=$(wc -c < "${output_file}" 2>/dev/null || echo "0")
+  log "  JSON çıktı boyutu: ${json_size} byte"
+
+  # result alanını kontrol et
   local result_text
   result_text=$(echo "$result" | jq -r '.result // ""' 2>/dev/null || echo "")
   local result_len=${#result_text}
+
+  # num_turns kontrolü — Claude gerçekten çalıştı mı?
+  local num_turns
+  num_turns=$(echo "$result" | jq -r '.num_turns // 0' 2>/dev/null || echo "0")
+  local total_cost
+  total_cost=$(echo "$result" | jq -r '.total_cost_usd // 0' 2>/dev/null || echo "0")
+
+  log "  result uzunluğu: ${result_len} karakter, num_turns: ${num_turns}, cost: \$${total_cost}"
+
+  # Claude dosyalara yazdığında .result kısa/boş olabilir.
+  # Bu durumda num_turns ve cost ile gerçek çalışma yapılıp yapılmadığını kontrol et.
   if [ $result_len -lt 50 ]; then
-    log "UYARI: Claude CLI çıktısı çok kısa (${result_len} karakter) — muhtemelen gerçek çalışma yapılmadı"
-    log "Çıktı: ${result_text:0:200}"
-    # Çok kısa çıktıyı başarısız say (gerçek çalışma en az birkaç yüz karakter üretir)
-    return 1
+    if [ "$num_turns" -gt 1 ] 2>/dev/null || [ "$(echo "$total_cost > 0" | bc -l 2>/dev/null || echo 0)" = "1" ]; then
+      log "  result kısa ama Claude ${num_turns} tur çalıştı (\$${total_cost}) — dosyalara yazmış olabilir, başarılı sayılıyor"
+    else
+      log "UYARI: Claude CLI çıktısı çok kısa (${result_len} karakter), turns=${num_turns}, cost=\$${total_cost}"
+      log "  Çıktı: ${result_text:0:200}"
+      # İlk 200 byte JSON'ı da logla
+      log "  JSON başlangıcı: $(head -c 200 "${output_file}" 2>/dev/null || echo 'okunamadı')"
+      return 1
+    fi
+  else
+    log "Claude CLI başarılı (${result_len} karakter çıktı)"
   fi
 
-  log "Claude CLI başarılı (${result_len} karakter çıktı)"
   return 0
 }
 
@@ -495,18 +533,23 @@ else
   local_test_exit=0
 
   # Root ise gosu ile factory kullanıcısı olarak çalıştır
-  local_preflight_cmd="claude"
   if command -v gosu &>/dev/null && [ "$(id -u)" = "0" ]; then
-    local_preflight_cmd="gosu factory claude"
     log "  Root tespit edildi — gosu factory ile test yapılacak"
+    HOME=/home/factory \
+    ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
+    PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+    gosu factory claude -p "Say only: OK" \
+      --dangerously-skip-permissions \
+      --output-format json \
+      --max-turns 1 \
+      > "${local_test_file}" 2>"${local_test_stderr}" || local_test_exit=$?
+  else
+    claude -p "Say only: OK" \
+      --dangerously-skip-permissions \
+      --output-format json \
+      --max-turns 1 \
+      > "${local_test_file}" 2>"${local_test_stderr}" || local_test_exit=$?
   fi
-
-  HOME=/home/factory ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
-  $local_preflight_cmd -p "Say only: OK" \
-    --dangerously-skip-permissions \
-    --output-format json \
-    --max-turns 1 \
-    > "${local_test_file}" 2>"${local_test_stderr}" || local_test_exit=$?
 
   if [ $local_test_exit -ne 0 ]; then
     log "  UYARI: Claude CLI bağlantı testi başarısız (exit code: ${local_test_exit})"

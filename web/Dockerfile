@@ -30,8 +30,8 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 
-# Runtime tools (orchestrator.sh needs bash, jq, curl, gosu)
-RUN apk add --no-cache bash jq curl git gosu
+# Runtime tools (orchestrator.sh needs bash, jq, curl, gosu, bc)
+RUN apk add --no-cache bash jq curl git gosu bc
 
 # Install Claude CLI globally (pipeline execution)
 RUN corepack enable && corepack prepare pnpm@latest --activate && npm install -g @anthropic-ai/claude-code
