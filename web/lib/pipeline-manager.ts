@@ -141,6 +141,22 @@ class PipelineManager {
     return true;
   }
 
+  /**
+   * Durdurulan veya başarısız olan bir run'ı sıfırdan yeniden başlatır.
+   * Yeni bir runId oluşturur ve aynı kategoriyle pipeline'ı tekrar çalıştırır.
+   */
+  async restartRun(runId: string): Promise<{ newRunId: string; queued: boolean } | null> {
+    // Eski run'ın kategori bilgisini runId'den çıkar (format: category_YYYYMMDD_HHmmss)
+    const parts = runId.split("_");
+    if (parts.length < 3) return null;
+    // Son iki parça tarih/saat, geri kalanı kategori
+    const category = parts.slice(0, parts.length - 2).join("_");
+    if (!category) return null;
+
+    const { runId: newRunId, queued } = await this.startRun(category);
+    return { newRunId, queued };
+  }
+
   getQueue(): QueueItem[] {
     return [...this.queue];
   }

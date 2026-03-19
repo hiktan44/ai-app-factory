@@ -9,9 +9,10 @@ import { TOTAL_STEPS } from "@/lib/constants";
 interface RunHeaderProps {
   run: PipelineRun;
   onStop?: () => void;
+  onRestart?: () => void;
 }
 
-export function RunHeader({ run, onStop }: RunHeaderProps) {
+export function RunHeader({ run, onStop, onRestart }: RunHeaderProps) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
       <div>
@@ -35,6 +36,11 @@ export function RunHeader({ run, onStop }: RunHeaderProps) {
         {run.status === "running" && onStop && (
           <Button variant="danger" size="sm" onClick={onStop}>
             Durdur
+          </Button>
+        )}
+        {(run.status === "stopped" || run.status === "failed") && onRestart && (
+          <Button variant="primary" size="sm" onClick={onRestart}>
+            ↺ Yeniden Başlat
           </Button>
         )}
       </div>

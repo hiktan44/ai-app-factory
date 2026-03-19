@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useEventSource } from "@/hooks/use-event-source";
 import { useRunStatus } from "@/hooks/use-run-status";
 import { parseLogContent } from "@/lib/run-parser";
@@ -17,6 +18,7 @@ export default function RunDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
 
   // Fetch run metadata periodically
   const { run, loading } = useRunStatus(id, 5000);
@@ -47,6 +49,19 @@ export default function RunDetailPage({
       console.error("Failed to stop run:", err);
     }
   }, [id]);
+
+  const handleRestart = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/runs/${id}/restart`, { method: "POST" });
+      const data = await res.json();
+      if (data.newRunId) {
+        // Yeni run sayfasına yönlendir
+        router.push(`/runs/${data.newRunId}`);
+      }
+    } catch (err) {
+      console.error("Failed to restart run:", err);
+    }
+  }, [id, router]);
 
   const isRunning = run?.status === "running" || (isConnected && !isComplete);
 
@@ -85,6 +100,7 @@ export default function RunDetailPage({
       <RunHeader
         run={headerRun}
         onStop={isRunning ? handleStop : undefined}
+        onRestart={!isRunning ? handleRestart : undefined}
       />
 
       <StepProgress steps={steps} currentStep={currentStep} />
