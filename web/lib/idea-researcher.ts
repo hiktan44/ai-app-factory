@@ -270,7 +270,7 @@ Yukarıdaki araştırma verilerini kullanarak bu fikri geliştir ve JSON döndü
 
     if (llmProvider === "gemini" && llmApiKey) {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${llmApiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${llmApiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

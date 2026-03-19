@@ -16,12 +16,12 @@ export type GeminiModelTier = "pro" | "flash";
 /** Model tanimlari */
 const MODELS: Record<GeminiModelTier, { id: string; label: string }> = {
   pro: {
-    id: "gemini-2.5-pro-preview-05-06",
-    label: "Gemini 2.5 Pro Preview",
+    id: "gemini-3.1-pro-preview",
+    label: "Gemini 3.1 Pro Preview",
   },
   flash: {
-    id: "gemini-2.0-flash",
-    label: "Gemini 2.0 Flash",
+    id: "gemini-3-flash-preview",
+    label: "Gemini 3 Flash Preview",
   },
 };
 
