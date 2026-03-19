@@ -204,7 +204,8 @@ call_claude() {
 
 CATEGORY="${1:?Kullanım: ./orchestrator.sh <kategori>}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-RUN_ID="${CATEGORY}_${TIMESTAMP}"
+# Web UI'dan RUN_ID env değişkeni geçilmişse onu kullan, yoksa üret
+RUN_ID="${RUN_ID:-${CATEGORY}_${TIMESTAMP}}"
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 WORKSPACE="${PROJECT_ROOT}/runs/${RUN_ID}"
 PROMPTS_DIR="${PROJECT_ROOT}/prompts"

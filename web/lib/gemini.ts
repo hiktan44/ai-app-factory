@@ -1,4 +1,5 @@
 import type { IdeaProposal } from "./types";
+import { readSettings } from "./settings";
 
 // ============================================================
 // Gemini Multi-Model Configuration
@@ -15,12 +16,12 @@ export type GeminiModelTier = "pro" | "flash";
 /** Model tanimlari */
 const MODELS: Record<GeminiModelTier, { id: string; label: string }> = {
   pro: {
-    id: "gemini-3.1-pro-preview",
-    label: "Gemini 3.1 Pro Preview",
+    id: "gemini-2.5-pro-preview-05-06",
+    label: "Gemini 2.5 Pro Preview",
   },
   flash: {
-    id: "gemini-3.1-flash-lite-preview",
-    label: "Gemini 3.1 Flash Lite Preview",
+    id: "gemini-2.0-flash",
+    label: "Gemini 2.0 Flash",
   },
 };
 
@@ -48,8 +49,16 @@ const TASK_MODEL_MAP: Record<TaskType, GeminiModelTier> = {
 // ============================================================
 
 function getApiKey(): string {
+  // Önce settings.json'dan oku (ayarlar sayfasından kaydedilen değer)
+  try {
+    const settings = readSettings();
+    if (settings.geminiApiKey && !settings.geminiApiKey.includes("●")) {
+      return settings.geminiApiKey;
+    }
+  } catch { /* ignore */ }
+  // Fallback: ortam değişkeni
   const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error("GEMINI_API_KEY ortam degiskeni ayarlanmamis");
+  if (!key) throw new Error("Gemini API key ayarlanmamış. Lütfen /settings sayfasından ekleyin.");
   return key;
 }
 
@@ -132,9 +141,29 @@ export function getAllModels() {
 
 /** Kategori icin yenilikci uygulama fikri uret — Flash (hizli, yaratici) */
 export async function generateIdea(category: string): Promise<IdeaProposal> {
+  // Her çağrıda farklı fikir üretmek için rastgele bir tohum değeri ekle
+  const seed = Math.random().toString(36).substring(2, 8);
+  const angles = [
+    "niş bir alt segmente odaklan",
+    "B2B SaaS olarak tasarla",
+    "mobil-öncelikli bir yaklaşım benimse",
+    "yapay zeka destekli otomasyon ön plana çıkar",
+    "topluluk ve sosyal özellikler ekle",
+    "freelancer ve solo girişimcilere hitap et",
+    "küçük işletmelere odaklan",
+    "eğitim ve öğrenme boyutu ekle",
+    "no-code kullanıcıları hedefle",
+    "abonelik ekonomisini ön plana çıkar",
+  ];
+  const randomAngle = angles[Math.floor(Math.random() * angles.length)];
+
   const prompt = `Sen bir yapay zeka uygulama fabrikasisin. Asagidaki kategori icin yenilikci, gercekci ve gelistirilebilir bir SaaS web uygulamasi fikri oner.
 
 Kategori: ${category}
+Oturum: ${seed}
+Odak acisi: ${randomAngle}
+
+ONEMLI: Her seferinde tamamen FARKLI ve YENI bir fikir oner. Onceki fikirlerden ilham alma. Bu oturum kodu benzersiz bir fikir uret: ${seed}
 
 Asagidaki JSON formatinda SADECE JSON olarak cevap ver, baska hicbir sey yazma:
 
