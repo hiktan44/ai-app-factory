@@ -1,0 +1,45 @@
+# ============================================================
+# AI App Factory - Coolify Production Compose
+# Bu dosya Coolify'da docker-compose build pack ile kullanılır.
+# Persistent volume: ai-factory-runs → /factory/runs
+# ============================================================
+
+services:
+  web:
+    build:
+      context: web
+      dockerfile: Dockerfile
+    ports:
+      - "3000"
+    volumes:
+      # Persistent: üretilen app'ler, loglar, assets burada kalır
+      - ai-factory-runs:/factory/runs
+      # Persistent: prompt dosyaları (web UI'dan düzenlenebilir)
+      - ai-factory-prompts:/factory/prompts
+    environment:
+      - NODE_ENV=production
+      - PROJECT_ROOT=/factory
+      - DATABASE_URL=${DATABASE_URL}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_ORG=${GITHUB_ORG:-}
+      - COOLIFY_API_URL=${COOLIFY_API_URL:-}
+      - COOLIFY_API_TOKEN=${COOLIFY_API_TOKEN:-}
+      - NEXT_TELEMETRY_DISABLED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    labels:
+      - coolify.managed=true
+
+volumes:
+  # Named volumes — Coolify bunları deploy'lar arasında korur
+  ai-factory-runs:
+    name: ai-factory-runs
+  ai-factory-prompts:
+    name: ai-factory-prompts
