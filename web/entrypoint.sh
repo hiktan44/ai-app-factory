@@ -56,5 +56,9 @@ cat > /factory/settings.json <<ENDJSON
 ENDJSON
 echo "[entrypoint] settings.json env'den oluşturuldu."
 
+# --- /factory dizini izinleri (factory kullanıcısı Claude CLI için gerekli) ---
+chown -R factory:factory /factory 2>/dev/null || true
+echo "[entrypoint] /factory izinleri factory kullanıcısına verildi."
+
 # Node.js server'ı başlat
 exec node server.js

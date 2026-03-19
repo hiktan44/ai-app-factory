@@ -195,8 +195,18 @@ call_claude() {
     max_turns_flag="--max-turns 25"
   fi
 
+  # Claude CLI --dangerously-skip-permissions root ile çalışmaz.
+  # gosu varsa (Docker container) non-root 'factory' kullanıcısıyla çalıştır.
+  # gosu yoksa (lokal geliştirme) doğrudan çalıştır.
+  local claude_cmd="claude"
+  if command -v gosu &>/dev/null && [ "$(id -u)" = "0" ]; then
+    claude_cmd="gosu factory claude"
+    log "  Root tespit edildi — gosu factory ile çalıştırılacak"
+  fi
+
   if [ -n "$extra_flags" ]; then
-    claude -p "${user_prompt}" \
+    HOME=/home/factory ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
+    $claude_cmd -p "${user_prompt}" \
       --append-system-prompt "${system_prompt}" \
       --dangerously-skip-permissions \
       --output-format json \
@@ -204,7 +214,8 @@ call_claude() {
       ${extra_flags} \
       > "${output_file}" 2>"${stderr_file}" || exit_code=$?
   else
-    claude -p "${user_prompt}" \
+    HOME=/home/factory ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
+    $claude_cmd -p "${user_prompt}" \
       --append-system-prompt "${system_prompt}" \
       --dangerously-skip-permissions \
       --output-format json \
@@ -483,7 +494,15 @@ else
   local_test_stderr="${WORKSPACE}/logs/preflight-test.stderr"
   local_test_exit=0
 
-  claude -p "Say only: OK" \
+  # Root ise gosu ile factory kullanıcısı olarak çalıştır
+  local_preflight_cmd="claude"
+  if command -v gosu &>/dev/null && [ "$(id -u)" = "0" ]; then
+    local_preflight_cmd="gosu factory claude"
+    log "  Root tespit edildi — gosu factory ile test yapılacak"
+  fi
+
+  HOME=/home/factory ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
+  $local_preflight_cmd -p "Say only: OK" \
     --dangerously-skip-permissions \
     --output-format json \
     --max-turns 1 \

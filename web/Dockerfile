@@ -30,11 +30,16 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 
-# Runtime tools (orchestrator.sh needs bash, jq, curl)
-RUN apk add --no-cache bash jq curl git
+# Runtime tools (orchestrator.sh needs bash, jq, curl, gosu)
+RUN apk add --no-cache bash jq curl git gosu
 
 # Install Claude CLI globally (pipeline execution)
 RUN corepack enable && corepack prepare pnpm@latest --activate && npm install -g @anthropic-ai/claude-code
+
+# Non-root user for Claude CLI (--dangerously-skip-permissions refuses root)
+RUN addgroup -S factory && adduser -S factory -G factory -h /home/factory \
+    && mkdir -p /home/factory/.claude \
+    && chown -R factory:factory /home/factory
 
 # Copy standalone output from builder
 COPY --from=builder /app/.next/standalone ./
@@ -58,7 +63,8 @@ RUN chmod +x /app/entrypoint.sh
 # Factory data directories
 # /factory       → project root (volume mounted at runtime)
 # /factory/runs  → persisted via Coolify volume (survives redeploy)
-RUN mkdir -p /factory/runs /factory/prompts /factory/logs
+RUN mkdir -p /factory/runs /factory/prompts /factory/logs \
+    && chown -R factory:factory /factory
 
 # Mark /factory/runs as a volume so Docker knows it is persistent data
 VOLUME ["/factory/runs"]
