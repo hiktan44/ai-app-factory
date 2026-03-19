@@ -15,6 +15,8 @@ export interface AppSettings {
   githubOrg: string;
   coolifyApiUrl: string;
   coolifyApiToken: string;
+  coolifyServerUuid: string;
+  coolifyProjectUuid: string;
 }
 
 export function getSettingsPath(): string {
@@ -41,6 +43,8 @@ export function readSettings(): AppSettings {
     githubOrg: "",
     coolifyApiUrl: "",
     coolifyApiToken: "",
+    coolifyServerUuid: "",
+    coolifyProjectUuid: "",
   };
 }
 

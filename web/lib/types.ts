@@ -29,6 +29,9 @@ export interface PipelineRun {
   hasProductSpec: boolean;
   hasReviewReport: boolean;
   appName?: string;
+  deployStatus?: "not_started" | "deploying" | "deployed" | "failed";
+  deployUrl?: string;
+  githubRepoUrl?: string;
 }
 
 export interface RunArtifact {
