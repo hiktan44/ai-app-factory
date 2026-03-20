@@ -1,6 +1,19 @@
 import { NextResponse } from "next/server";
+import { readSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Resolve an API key: if the value from the client is masked (contains ●),
+ * fall back to the real value stored in settings.json.
+ */
+function resolveKey(clientValue: string | undefined, settingsKey: string): string {
+  if (clientValue && !clientValue.includes("●")) {
+    return clientValue;
+  }
+  const stored = readSettings();
+  return (stored as Record<string, unknown>)[settingsKey] as string || "";
+}
 
 export async function POST(request: Request) {
   try {
@@ -8,8 +21,8 @@ export async function POST(request: Request) {
     const { service, settings } = body;
 
     if (service === "anthropic") {
-      const apiKey = settings.anthropicApiKey;
-      if (!apiKey || apiKey.includes("●")) {
+      const apiKey = resolveKey(settings.anthropicApiKey, "anthropicApiKey");
+      if (!apiKey) {
         return NextResponse.json({ success: false, message: "Geçerli bir API key girin" });
       }
       const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -31,8 +44,8 @@ export async function POST(request: Request) {
     }
 
     if (service === "gemini") {
-      const apiKey = settings.geminiApiKey;
-      if (!apiKey || apiKey.includes("●")) {
+      const apiKey = resolveKey(settings.geminiApiKey, "geminiApiKey");
+      if (!apiKey) {
         return NextResponse.json({ success: false, message: "Geçerli bir API key girin" });
       }
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
@@ -41,8 +54,8 @@ export async function POST(request: Request) {
     }
 
     if (service === "grok") {
-      const apiKey = settings.grokApiKey;
-      if (!apiKey || apiKey.includes("●")) {
+      const apiKey = resolveKey(settings.grokApiKey, "grokApiKey");
+      if (!apiKey) {
         return NextResponse.json({ success: false, message: "Geçerli bir API key girin" });
       }
       const res = await fetch("https://api.x.ai/v1/models", {
@@ -53,8 +66,8 @@ export async function POST(request: Request) {
     }
 
     if (service === "qwen") {
-      const apiKey = settings.qwenApiKey;
-      if (!apiKey || apiKey.includes("●")) {
+      const apiKey = resolveKey(settings.qwenApiKey, "qwenApiKey");
+      if (!apiKey) {
         return NextResponse.json({ success: false, message: "Geçerli bir API key girin" });
       }
       const res = await fetch("https://dashscope.aliyuncs.com/compatible-mode/v1/models", {
@@ -65,8 +78,8 @@ export async function POST(request: Request) {
     }
 
     if (service === "minimax") {
-      const apiKey = settings.minimaxApiKey;
-      if (!apiKey || apiKey.includes("●")) {
+      const apiKey = resolveKey(settings.minimaxApiKey, "minimaxApiKey");
+      if (!apiKey) {
         return NextResponse.json({ success: false, message: "Geçerli bir API key girin" });
       }
       // MiniMax test - minimal API call
@@ -84,8 +97,8 @@ export async function POST(request: Request) {
     }
 
     if (service === "openrouter") {
-      const apiKey = settings.openrouterApiKey;
-      if (!apiKey || apiKey.includes("●")) {
+      const apiKey = resolveKey(settings.openrouterApiKey, "openrouterApiKey");
+      if (!apiKey) {
         return NextResponse.json({ success: false, message: "Geçerli bir API key girin" });
       }
       const res = await fetch("https://openrouter.ai/api/v1/models", {
@@ -96,8 +109,8 @@ export async function POST(request: Request) {
     }
 
     if (service === "github") {
-      const token = settings.githubToken;
-      if (!token || token.includes("●")) {
+      const token = resolveKey(settings.githubToken, "githubToken");
+      if (!token) {
         return NextResponse.json({ success: false, message: "Geçerli bir token girin" });
       }
       const res = await fetch("https://api.github.com/user", {
@@ -111,8 +124,9 @@ export async function POST(request: Request) {
     }
 
     if (service === "coolify") {
-      const { coolifyApiUrl, coolifyApiToken } = settings;
-      if (!coolifyApiUrl || !coolifyApiToken || coolifyApiToken.includes("●")) {
+      const coolifyApiUrl = settings.coolifyApiUrl || readSettings().coolifyApiUrl || "";
+      const coolifyApiToken = resolveKey(settings.coolifyApiToken, "coolifyApiToken");
+      if (!coolifyApiUrl || !coolifyApiToken) {
         return NextResponse.json({ success: false, message: "URL ve token girin" });
       }
       const res = await fetch(`${coolifyApiUrl}/api/v1/teams`, {
