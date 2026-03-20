@@ -12,7 +12,7 @@ export async function GET(
 
   try {
     const manager = getPipelineManager();
-    const run = getRunDetail(id, manager.activeRunId);
+    const run = getRunDetail(id, manager.activeRunIds);
 
     if (!run) {
       return NextResponse.json(

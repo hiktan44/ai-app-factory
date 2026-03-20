@@ -141,7 +141,7 @@ export function listRuns(activeRunId: string | string[] | null): PipelineRun[] {
   });
 }
 
-export function getRunDetail(runId: string, activeRunId: string | null): PipelineRun | null {
+export function getRunDetail(runId: string, activeRunId: string | string[] | null): PipelineRun | null {
   const runDir = getRunDir(runId);
   if (!fs.existsSync(runDir)) return null;
 
