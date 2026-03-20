@@ -26,15 +26,28 @@ export async function GET() {
     },
   };
 
-  // Test claude CLI with API key
+  // Test claude CLI with API key (gosu ile factory kullanıcısı olarak)
   try {
-    const testResult = execSync(
-      `ANTHROPIC_API_KEY="${process.env.ANTHROPIC_API_KEY || ""}" claude -p "say: ok" --dangerously-skip-permissions --output-format json 2>&1 | head -c 200`,
-      { timeout: 30000, shell: "/bin/bash" }
-    ).toString().trim();
+    const isRoot = process.getuid?.() === 0;
+    const hasGosu = (() => { try { execSync("command -v gosu", { timeout: 2000 }); return true; } catch { return false; } })();
+
+    let cmd: string;
+    if (isRoot && hasGosu) {
+      cmd = `HOME=/home/factory ANTHROPIC_API_KEY="${process.env.ANTHROPIC_API_KEY || ""}" gosu factory claude -p "say: ok" --dangerously-skip-permissions --output-format json --max-turns 1 2>&1 | head -c 500`;
+    } else {
+      cmd = `ANTHROPIC_API_KEY="${process.env.ANTHROPIC_API_KEY || ""}" claude -p "say: ok" --dangerously-skip-permissions --output-format json --max-turns 1 2>&1 | head -c 500`;
+    }
+
+    const testResult = execSync(cmd, { timeout: 60000, shell: "/bin/bash" }).toString().trim();
     info.claudeTest = testResult;
+    info.claudeTestMethod = isRoot && hasGosu ? "gosu factory" : "direct";
   } catch (e) {
-    info.claudeTest = "ERROR: " + String(e).slice(0, 200);
+    const errMsg = String(e);
+    info.claudeTest = "ERROR: " + errMsg.slice(0, 500);
+    // stdout içindeki çıktıyı da yakala
+    if ((e as { stdout?: Buffer }).stdout) {
+      info.claudeTestStdout = (e as { stdout: Buffer }).stdout.toString().slice(0, 500);
+    }
   }
 
   // List /factory contents
@@ -55,6 +68,26 @@ export async function GET() {
     info.bashVersion = execSync("bash --version 2>&1 | head -1", { timeout: 3000 }).toString().trim();
   } catch {
     info.bashVersion = "not found";
+  }
+
+  // Volume ve runs dizini durumu
+  try {
+    const factoryStats = fs.statSync("/factory");
+    info.factoryVolume = {
+      exists: true,
+      isMount: true, // Docker volume mount
+      dev: factoryStats.dev,
+    };
+    if (fs.existsSync("/factory/runs")) {
+      const runsEntries = fs.readdirSync("/factory/runs");
+      info.runsCount = runsEntries.length;
+      info.runsList = runsEntries.sort().reverse().slice(0, 10);
+    } else {
+      info.runsCount = 0;
+      info.runsError = "/factory/runs does not exist";
+    }
+  } catch (e) {
+    info.factoryVolumeError = String(e).slice(0, 200);
   }
 
   // Check stdout log of last run

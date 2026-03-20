@@ -35,9 +35,17 @@ else
   echo "[entrypoint] learnings.json zaten mevcut — korunuyor."
 fi
 
-# --- settings.json (env var'lardan oluştur, her başlatmada güncelle) ---
+# --- settings.json (env var'lardan oluştur, mevcut ayarları koru) ---
 # orchestrator.sh satır 28-42 bu dosyayı okur
 # Docker'da API key'ler env var olarak gelir (docker-compose.yaml)
+# Mevcut settings.json'dan maxTurns ve maxConcurrentRuns gibi kullanıcı ayarlarını koru
+EXISTING_MAX_TURNS=50
+EXISTING_MAX_CONCURRENT=1
+if [ -f /factory/settings.json ]; then
+  EXISTING_MAX_TURNS=$(cat /factory/settings.json | jq -r '.maxTurns // 50' 2>/dev/null || echo 50)
+  EXISTING_MAX_CONCURRENT=$(cat /factory/settings.json | jq -r '.maxConcurrentRuns // 1' 2>/dev/null || echo 1)
+fi
+
 cat > /factory/settings.json <<ENDJSON
 {
   "anthropicApiKey": "${ANTHROPIC_API_KEY:-}",
@@ -51,10 +59,12 @@ cat > /factory/settings.json <<ENDJSON
   "coolifyApiUrl": "${COOLIFY_API_URL:-}",
   "coolifyApiToken": "${COOLIFY_API_TOKEN:-}",
   "coolifyServerUuid": "${COOLIFY_SERVER_UUID:-}",
-  "coolifyProjectUuid": "${COOLIFY_PROJECT_UUID:-}"
+  "coolifyProjectUuid": "${COOLIFY_PROJECT_UUID:-}",
+  "maxTurns": ${EXISTING_MAX_TURNS},
+  "maxConcurrentRuns": ${EXISTING_MAX_CONCURRENT}
 }
 ENDJSON
-echo "[entrypoint] settings.json env'den oluşturuldu."
+echo "[entrypoint] settings.json env'den oluşturuldu (maxTurns=${EXISTING_MAX_TURNS}, maxConcurrent=${EXISTING_MAX_CONCURRENT})."
 
 # --- /factory dizini izinleri (factory kullanıcısı Claude CLI için gerekli) ---
 chown -R factory:factory /factory 2>/dev/null || true

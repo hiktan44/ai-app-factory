@@ -66,8 +66,8 @@ RUN chmod +x /app/entrypoint.sh
 RUN mkdir -p /factory/runs /factory/prompts /factory/logs \
     && chown -R factory:factory /factory
 
-# Mark /factory/runs as a volume so Docker knows it is persistent data
-VOLUME ["/factory/runs"]
+# NOT: VOLUME direktifi kaldırıldı — docker-compose'daki named volume yeterli.
+# Dockerfile'daki VOLUME anonim volume oluşturur ve named volume ile çakışır.
 
 EXPOSE 3000
 
