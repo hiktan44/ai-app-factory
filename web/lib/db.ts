@@ -150,6 +150,19 @@ export async function dbGetRunningRun(): Promise<DbRun | null> {
   }
 }
 
+export async function dbGetRunningRuns(): Promise<DbRun[]> {
+  const pool = getPool();
+  if (!process.env.DATABASE_URL) return [];
+  try {
+    const res = await pool.query<DbRun>(
+      `SELECT * FROM pipeline_runs WHERE status='running' ORDER BY started_at DESC`,
+    );
+    return res.rows;
+  } catch {
+    return [];
+  }
+}
+
 export async function dbGetQueue(): Promise<DbQueueItem[]> {
   const pool = getPool();
   if (!process.env.DATABASE_URL) return [];

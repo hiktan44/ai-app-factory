@@ -9,6 +9,7 @@ import {
   dbUpsertRun,
   dbUpdateRun,
   dbGetRunningRun,
+  dbGetRunningRuns,
   dbGetQueue,
   dbEnqueue,
   dbDequeue,
@@ -164,8 +165,8 @@ class PipelineManager {
   }
 
   /**
-   * Durdurulan veya başarısız olan bir run'ı sıfırdan yeniden başlatır.
-   * Yeni bir runId oluşturur ve aynı kategoriyle pipeline'ı tekrar çalıştırır.
+   * Durdurulan veya başarısız olan bir run'ı yeniden başlatır.
+   * Eski run'daki product-spec.md ve pre-approved.json varsa yeni run'a kopyalar.
    */
   async restartRun(runId: string): Promise<{ newRunId: string; queued: boolean } | null> {
     // Eski run'ın kategori bilgisini runId'den çıkar (format: category_YYYYMMDD_HHmmss)
@@ -174,6 +175,25 @@ class PipelineManager {
     // Son iki parça tarih/saat, geri kalanı kategori
     const category = parts.slice(0, parts.length - 2).join("_");
     if (!category) return null;
+
+    // Check if old run had a custom product spec
+    const oldWorkspace = path.join(getRunsDir(), runId);
+    const oldSpecPath = path.join(oldWorkspace, "product-spec.md");
+    const oldPreApproved = path.join(oldWorkspace, "pre-approved.json");
+
+    if (fs.existsSync(oldSpecPath) && fs.existsSync(oldPreApproved)) {
+      // Restart with the same spec
+      const spec = fs.readFileSync(oldSpecPath, "utf-8");
+      let appName = category;
+      try {
+        const preApproved = JSON.parse(fs.readFileSync(oldPreApproved, "utf-8"));
+        appName = preApproved.appName || category;
+      } catch {
+        // Use category as fallback
+      }
+      const result = await this.startRunWithSpec(category, spec, appName);
+      return { newRunId: result.runId, queued: result.queued };
+    }
 
     const { runId: newRunId, queued } = await this.startRun(category);
     return { newRunId, queued };
@@ -344,9 +364,9 @@ class PipelineManager {
   }
 
   private async detectOrphanedRuns(): Promise<void> {
-    // Check DB for any "running" runs that were left over from previous instance
-    const running = await dbGetRunningRun();
-    if (running) {
+    // Check DB for ALL "running" runs that were left over from previous instance
+    const runningRuns = await dbGetRunningRuns();
+    for (const running of runningRuns) {
       // Check if the PID is actually alive in THIS container instance
       let isAlive = false;
       if (running.pid) {
