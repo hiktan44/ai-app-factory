@@ -23,7 +23,7 @@ function computeStats(runs: ReturnType<typeof listRuns>): RunStats {
 
 export default function DashboardPage() {
   const manager = getPipelineManager();
-  const runs = listRuns(manager.activeRunId);
+  const runs = listRuns(manager.activeRunIds);
   const stats = computeStats(runs);
   const recentRuns = runs.slice(0, 6);
 

@@ -17,6 +17,8 @@ export async function GET() {
     githubOrg: settings.githubOrg || "",
     coolifyApiUrl: settings.coolifyApiUrl || "",
     coolifyApiToken: maskValue(settings.coolifyApiToken || ""),
+    maxTurns: settings.maxTurns || 50,
+    maxConcurrentRuns: settings.maxConcurrentRuns || 1,
   });
 }
 
@@ -28,8 +30,11 @@ export async function POST(request: Request) {
 
     // Only update non-masked values
     for (const [key, value] of Object.entries(body)) {
-      if (typeof value === "string" && !value.includes("●")) {
-        (updated as Record<string, string>)[key] = value;
+      if (typeof value === "number") {
+        // Number fields (maxTurns, maxConcurrentRuns)
+        (updated as Record<string, unknown>)[key] = value;
+      } else if (typeof value === "string" && !value.includes("●")) {
+        (updated as Record<string, unknown>)[key] = value;
       }
     }
 

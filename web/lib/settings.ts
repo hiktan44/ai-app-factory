@@ -17,6 +17,9 @@ export interface AppSettings {
   coolifyApiToken: string;
   coolifyServerUuid: string;
   coolifyProjectUuid: string;
+  // Pipeline
+  maxTurns: number;
+  maxConcurrentRuns: number;
 }
 
 export function getSettingsPath(): string {
@@ -45,6 +48,8 @@ export function readSettings(): AppSettings {
     coolifyApiToken: "",
     coolifyServerUuid: "",
     coolifyProjectUuid: "",
+    maxTurns: 50,
+    maxConcurrentRuns: 1,
   };
 }
 

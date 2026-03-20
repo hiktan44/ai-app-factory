@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { listRuns } from "@/lib/file-utils";
 import { getPipelineManager } from "@/lib/pipeline-manager";
+import { readSettings } from "@/lib/settings";
 import { CATEGORIES } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
@@ -8,13 +9,21 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const manager = getPipelineManager();
-    const runs = listRuns(manager.activeRunId);
+    const activeRunIds = manager.activeRunIds;
+    const runs = listRuns(activeRunIds.length > 0 ? activeRunIds : null);
     const queue = manager.getQueue();
+    const settings = readSettings();
 
-    return NextResponse.json({ runs, queue });
+    return NextResponse.json({
+      runs,
+      queue,
+      activeRunIds,
+      runningCount: manager.runningCount,
+      maxConcurrent: settings.maxConcurrentRuns || 1,
+    });
   } catch (error) {
     console.error("Failed to list runs:", error);
-    return NextResponse.json({ runs: [], queue: [] });
+    return NextResponse.json({ runs: [], queue: [], activeRunIds: [], runningCount: 0, maxConcurrent: 1 });
   }
 }
 

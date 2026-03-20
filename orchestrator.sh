@@ -192,7 +192,8 @@ call_claude() {
   # --continue flag'i varsa max-turns ekleme (continue kendi turunu yönetir)
   local max_turns_flag=""
   if [[ "$extra_flags" != *"--continue"* ]]; then
-    max_turns_flag="--max-turns 50"
+    local configured_max_turns="${MAX_TURNS:-50}"
+    max_turns_flag="--max-turns ${configured_max_turns}"
   fi
 
   # Claude CLI --dangerously-skip-permissions root ile çalışmaz.

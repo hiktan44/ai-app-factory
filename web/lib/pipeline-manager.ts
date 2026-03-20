@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import type { QueueItem, WebRunMeta } from "./types";
 import { getProjectRoot, getRunsDir, getOrchestratorPath } from "./file-utils";
+import { readSettings } from "./settings";
 import {
   ensureSchema,
   dbUpsertRun,
@@ -16,8 +17,7 @@ import {
 } from "./db";
 
 class PipelineManager {
-  private currentProcess: ChildProcess | null = null;
-  private currentRunId: string | null = null;
+  private activeProcesses: Map<string, ChildProcess> = new Map();
   private queue: QueueItem[] = [];
   private initialized = false;
 
@@ -44,18 +44,41 @@ class PipelineManager {
     // 3. Reload persisted queue from DB
     await this.reloadQueue();
 
-    // 4. If nothing is running, start processing queue
-    if (!this.isRunning && this.queue.length > 0) {
+    // 4. If capacity available, start processing queue
+    if (!this.isFull && this.queue.length > 0) {
       await this.processQueue();
     }
   }
 
   get isRunning(): boolean {
-    return this.currentProcess !== null;
+    return this.activeProcesses.size > 0;
   }
 
   get activeRunId(): string | null {
-    return this.currentRunId;
+    // İlk aktif run'ı döndür (geriye uyumluluk)
+    const first = this.activeProcesses.keys().next();
+    return first.done ? null : first.value;
+  }
+
+  get activeRunIds(): string[] {
+    return Array.from(this.activeProcesses.keys());
+  }
+
+  get runningCount(): number {
+    return this.activeProcesses.size;
+  }
+
+  private get maxConcurrent(): number {
+    try {
+      const settings = readSettings();
+      return settings.maxConcurrentRuns || 1;
+    } catch {
+      return 1;
+    }
+  }
+
+  private get isFull(): boolean {
+    return this.activeProcesses.size >= this.maxConcurrent;
   }
 
   async startRun(category: string): Promise<{ runId: string; queued: boolean }> {
@@ -65,7 +88,7 @@ class PipelineManager {
     // Persist to DB immediately
     await dbUpsertRun({ id: runId, category, status: "queued" });
 
-    if (this.isRunning) {
+    if (this.isFull) {
       const item: QueueItem = {
         id: runId,
         category,
@@ -99,7 +122,7 @@ class PipelineManager {
     // Persist to DB
     await dbUpsertRun({ id: runId, category, status: "queued", has_spec: true });
 
-    if (this.isRunning) {
+    if (this.isFull) {
       const item: QueueItem = {
         id: runId,
         category,
@@ -115,12 +138,12 @@ class PipelineManager {
   }
 
   stopRun(runId: string): boolean {
-    if (this.currentRunId !== runId || !this.currentProcess) return false;
+    const proc = this.activeProcesses.get(runId);
+    if (!proc) return false;
 
-    this.currentProcess.kill("SIGTERM");
+    proc.kill("SIGTERM");
 
     // Give it 5 seconds, then SIGKILL
-    const proc = this.currentProcess;
     setTimeout(() => {
       try {
         proc.kill("SIGKILL");
@@ -132,8 +155,7 @@ class PipelineManager {
     this.updateMeta(runId, { status: "stopped", completedAt: new Date().toISOString() });
     dbUpdateRun(runId, { status: "stopped", completed_at: new Date().toISOString() }).catch(() => {});
 
-    this.currentProcess = null;
-    this.currentRunId = null;
+    this.activeProcesses.delete(runId);
 
     // Process next in queue
     this.processQueue().catch(() => {});
@@ -166,12 +188,23 @@ class PipelineManager {
     if (idx === -1) return false;
     this.queue.splice(idx, 1);
     dbRemoveFromQueue(runId).catch(() => {});
+    // Update DB status to stopped
+    dbUpdateRun(runId, { status: "stopped", completed_at: new Date().toISOString() }).catch(() => {});
     return true;
   }
 
   private spawnProcess(runId: string, category: string): void {
     const projectRoot = getProjectRoot();
     const orchestratorPath = getOrchestratorPath();
+
+    // Read settings for maxTurns
+    let maxTurns = 50;
+    try {
+      const settings = readSettings();
+      maxTurns = settings.maxTurns || 50;
+    } catch {
+      // Use default
+    }
 
     // Pre-create workspace for meta file
     const workspace = path.join(getRunsDir(), runId);
@@ -194,6 +227,7 @@ class PipelineManager {
         HOME: process.env.HOME || "",
         PATH: process.env.PATH || "",
         RUN_ID: runId,
+        MAX_TURNS: String(maxTurns),
       },
       stdio: ["ignore", "pipe", "pipe"],
       detached: false,
@@ -209,8 +243,7 @@ class PipelineManager {
       pid: meta.pid ?? undefined,
     }).catch(() => {});
 
-    this.currentProcess = child;
-    this.currentRunId = runId;
+    this.activeProcesses.set(runId, child);
 
     // Log stdout/stderr to files for debugging
     const stdoutLog = path.join(workspace, "web-stdout.log");
@@ -238,8 +271,7 @@ class PipelineManager {
         exit_code: code ?? undefined,
       }).catch(() => {});
 
-      this.currentProcess = null;
-      this.currentRunId = null;
+      this.activeProcesses.delete(runId);
 
       // Process next in queue
       this.processQueue().catch(() => {});
@@ -257,22 +289,21 @@ class PipelineManager {
         completed_at: new Date().toISOString(),
       }).catch(() => {});
 
-      this.currentProcess = null;
-      this.currentRunId = null;
+      this.activeProcesses.delete(runId);
 
       this.processQueue().catch(() => {});
     });
   }
 
   private async processQueue(): Promise<void> {
-    if (this.isRunning || this.queue.length === 0) return;
-
-    // Try in-memory queue first
-    const next = this.queue.shift();
-    if (next) {
-      // Remove from DB queue
-      await dbRemoveFromQueue(next.id);
-      this.spawnProcess(next.id, next.category);
+    // Fill available slots from queue
+    while (!this.isFull && this.queue.length > 0) {
+      const next = this.queue.shift();
+      if (next) {
+        // Remove from DB queue
+        await dbRemoveFromQueue(next.id);
+        this.spawnProcess(next.id, next.category);
+      }
     }
   }
 
@@ -385,23 +416,22 @@ class PipelineManager {
   }
 
   private cleanup(): void {
-    if (this.currentProcess) {
+    for (const [runId, proc] of this.activeProcesses) {
       try {
-        this.currentProcess.kill("SIGTERM");
+        proc.kill("SIGTERM");
       } catch {
         // Already dead
       }
-      if (this.currentRunId) {
-        this.updateMeta(this.currentRunId, {
-          status: "stopped",
-          completedAt: new Date().toISOString(),
-        });
-        dbUpdateRun(this.currentRunId, {
-          status: "stopped",
-          completed_at: new Date().toISOString(),
-        }).catch(() => {});
-      }
+      this.updateMeta(runId, {
+        status: "stopped",
+        completedAt: new Date().toISOString(),
+      });
+      dbUpdateRun(runId, {
+        status: "stopped",
+        completed_at: new Date().toISOString(),
+      }).catch(() => {});
     }
+    this.activeProcesses.clear();
   }
 }
 

@@ -55,9 +55,12 @@ function readWebMeta(runDir: string): WebRunMeta | null {
   }
 }
 
-export function getRunStatus(runId: string, logContent: string, webMeta: WebRunMeta | null, activeRunId: string | null): RunStatus {
-  // If it's the currently active run
-  if (activeRunId === runId) return "running";
+export function getRunStatus(runId: string, logContent: string, webMeta: WebRunMeta | null, activeRunId: string | string[] | null): RunStatus {
+  // If it's one of the currently active runs
+  if (activeRunId) {
+    const activeIds = Array.isArray(activeRunId) ? activeRunId : [activeRunId];
+    if (activeIds.includes(runId)) return "running";
+  }
 
   // If web meta says it's running, check if process is still alive
   if (webMeta?.status === "running" && webMeta.pid) {
@@ -87,7 +90,7 @@ export function getRunStatus(runId: string, logContent: string, webMeta: WebRunM
   return "queued";
 }
 
-export function listRuns(activeRunId: string | null): PipelineRun[] {
+export function listRuns(activeRunId: string | string[] | null): PipelineRun[] {
   const runsDir = getRunsDir();
 
   if (!fs.existsSync(runsDir)) {

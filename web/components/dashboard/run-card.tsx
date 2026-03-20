@@ -1,15 +1,18 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { PipelineRun } from "@/lib/types";
 import { formatCost, formatDate, getCategoryLabel, getStatusLabel } from "@/lib/utils";
 import { TOTAL_STEPS } from "@/lib/constants";
 
 interface RunCardProps {
   run: PipelineRun;
+  onStop?: (id: string) => void;
+  onRestart?: (id: string) => void;
 }
 
-export function RunCard({ run }: RunCardProps) {
+export function RunCard({ run, onStop, onRestart }: RunCardProps) {
   const progress = Math.round((run.currentStep / TOTAL_STEPS) * 100);
   const progressColor =
     run.status === "completed"
@@ -51,6 +54,40 @@ export function RunCard({ run }: RunCardProps) {
           <span>{run.startedAt ? formatDate(run.startedAt) : ""}</span>
           <span className="font-mono">{formatCost(run.totalCostUsd)}</span>
         </div>
+
+        {/* Kontrol Düğmeleri */}
+        {(onStop || onRestart) && (
+          <div className="mt-3 pt-3 border-t border-edge flex items-center gap-2">
+            {onStop && (
+              <Button
+                variant="danger"
+                size="sm"
+                className="text-xs"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onStop(run.id);
+                }}
+              >
+                Durdur
+              </Button>
+            )}
+            {onRestart && (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="text-xs"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onRestart(run.id);
+                }}
+              >
+                Yeniden Başlat
+              </Button>
+            )}
+          </div>
+        )}
       </Card>
     </Link>
   );

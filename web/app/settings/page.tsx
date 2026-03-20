@@ -17,6 +17,9 @@ interface SettingsForm {
   githubOrg: string;
   coolifyApiUrl: string;
   coolifyApiToken: string;
+  // Pipeline
+  maxTurns: number;
+  maxConcurrentRuns: number;
 }
 
 interface TestState {
@@ -35,6 +38,8 @@ export default function SettingsPage() {
     githubOrg: "",
     coolifyApiUrl: "",
     coolifyApiToken: "",
+    maxTurns: 50,
+    maxConcurrentRuns: 1,
   });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -281,6 +286,53 @@ export default function SettingsPage() {
               <input type="password" value={settings.coolifyApiToken} onChange={update("coolifyApiToken")} placeholder="Bearer token..." className={inputClass} />
             </div>
             <TestBtn service="coolify" keyField="coolifyApiToken" />
+          </div>
+        </Card>
+      </div>
+
+      {/* ─── Pipeline Ayarları ─────────────────────────────── */}
+      <div>
+        <h2 className="text-lg font-semibold text-content mb-4">⚙️ Pipeline Ayarları</h2>
+
+        <Card className="p-6 animate-fade-in mb-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-xl">🔄</div>
+            <div>
+              <h3 className="font-semibold text-content">Maksimum Tur Sayısı</h3>
+              <p className="text-xs text-content-muted">Her adımda Claude&apos;un alabileceği maksimum ajan turu. Büyük projeler için artırın.</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <input
+              type="number"
+              min={10}
+              max={200}
+              value={settings.maxTurns}
+              onChange={(e) => setSettings((prev) => ({ ...prev, maxTurns: Math.max(10, Math.min(200, parseInt(e.target.value) || 50)) }))}
+              className={inputClass}
+            />
+            <p className="text-xs text-content-muted">Min: 10, Max: 200 — Varsayılan: 50</p>
+          </div>
+        </Card>
+
+        <Card className="p-6 animate-fade-in mb-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center text-xl">⚡</div>
+            <div>
+              <h3 className="font-semibold text-content">Eşzamanlı Pipeline Sayısı</h3>
+              <p className="text-xs text-content-muted">Aynı anda çalışabilecek pipeline sayısı. Sunucu kapasitesine göre ayarlayın.</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <input
+              type="number"
+              min={1}
+              max={5}
+              value={settings.maxConcurrentRuns}
+              onChange={(e) => setSettings((prev) => ({ ...prev, maxConcurrentRuns: Math.max(1, Math.min(5, parseInt(e.target.value) || 1)) }))}
+              className={inputClass}
+            />
+            <p className="text-xs text-content-muted">Min: 1, Max: 5 — Varsayılan: 1</p>
           </div>
         </Card>
       </div>
