@@ -50,7 +50,7 @@ export default function SettingsPage() {
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.json())
-      .then((data: SettingsForm) => setSettings(data))
+      .then((data: Partial<SettingsForm>) => setSettings((prev) => ({ ...prev, ...data })))
       .catch(() => {});
   }, []);
 
