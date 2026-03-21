@@ -576,12 +576,12 @@ else
   if command -v gosu &>/dev/null && [ "$(id -u)" = "0" ]; then
     log "  Root tespit edildi — gosu factory ile test yapılacak"
     # OAuth token varsa API key'i geçirme (CLI API key'i öncelikli kullanıyor)
-    local preflight_api_key=""
+    _preflight_api_key=""
     if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
-      preflight_api_key="${ANTHROPIC_API_KEY:-}"
+      _preflight_api_key="${ANTHROPIC_API_KEY:-}"
     fi
     HOME=/home/factory \
-    ANTHROPIC_API_KEY="${preflight_api_key}" \
+    ANTHROPIC_API_KEY="${_preflight_api_key}" \
     CLAUDE_CODE_OAUTH_TOKEN="${CLAUDE_CODE_OAUTH_TOKEN:-}" \
     PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
     gosu factory claude -p "Say only: OK" \
