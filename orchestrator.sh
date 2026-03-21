@@ -930,6 +930,8 @@ else
     GIT_PUSH_LOG="${WORKSPACE}/logs/git-push.log"
     (
       cd "${WORKSPACE}/app"
+      # factory kullanıcısı dosyaları oluşturdu, root push ediyor — safe.directory gerekli
+      git config --global --add safe.directory "${WORKSPACE}/app" 2>/dev/null || true
       git init -b main 2>/dev/null || git init  # eski git sürümlerinde -b yok
       git checkout -b main 2>/dev/null || true
       git config user.email "factory@seymata.com"
