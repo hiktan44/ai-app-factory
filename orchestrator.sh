@@ -234,8 +234,14 @@ RUNNER_EOF
     chmod +x "${runner_script}"
     chown factory:factory "${prompt_file}" "${sysprompt_file}" "${runner_script}" 2>/dev/null || true
 
+    # OAuth token varsa API key'i geçirme (CLI API key'i öncelikli kullanıyor)
+    local claude_api_key_for_gosu=""
+    if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+      claude_api_key_for_gosu="${ANTHROPIC_API_KEY:-}"
+    fi
+
     HOME=/home/factory \
-    ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}" \
+    ANTHROPIC_API_KEY="${claude_api_key_for_gosu}" \
     CLAUDE_CODE_OAUTH_TOKEN="${CLAUDE_CODE_OAUTH_TOKEN:-}" \
     PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
     gosu factory "${runner_script}" \
@@ -569,8 +575,13 @@ else
   # Root ise gosu ile factory kullanıcısı olarak çalıştır
   if command -v gosu &>/dev/null && [ "$(id -u)" = "0" ]; then
     log "  Root tespit edildi — gosu factory ile test yapılacak"
+    # OAuth token varsa API key'i geçirme (CLI API key'i öncelikli kullanıyor)
+    local preflight_api_key=""
+    if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+      preflight_api_key="${ANTHROPIC_API_KEY:-}"
+    fi
     HOME=/home/factory \
-    ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}" \
+    ANTHROPIC_API_KEY="${preflight_api_key}" \
     CLAUDE_CODE_OAUTH_TOKEN="${CLAUDE_CODE_OAUTH_TOKEN:-}" \
     PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
     gosu factory claude -p "Say only: OK" \
