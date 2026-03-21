@@ -10,9 +10,10 @@ interface RunCardProps {
   run: PipelineRun;
   onStop?: (id: string) => void;
   onRestart?: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
-export function RunCard({ run, onStop, onRestart }: RunCardProps) {
+export function RunCard({ run, onStop, onRestart, onDelete }: RunCardProps) {
   const progress = Math.round((run.currentStep / TOTAL_STEPS) * 100);
   const progressColor =
     run.status === "completed"
@@ -56,7 +57,7 @@ export function RunCard({ run, onStop, onRestart }: RunCardProps) {
         </div>
 
         {/* Kontrol Düğmeleri */}
-        {(onStop || onRestart) && (
+        {(onStop || onRestart || onDelete) && (
           <div className="mt-3 pt-3 border-t border-edge flex items-center gap-2">
             {onStop && (
               <Button
@@ -84,6 +85,22 @@ export function RunCard({ run, onStop, onRestart }: RunCardProps) {
                 }}
               >
                 Yeniden Başlat
+              </Button>
+            )}
+            {onDelete && (
+              <Button
+                variant="danger"
+                size="sm"
+                className="text-xs ml-auto opacity-60 hover:opacity-100"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (window.confirm(`"${run.appName || run.id}" silinecek. Emin misiniz?`)) {
+                    onDelete(run.id);
+                  }
+                }}
+              >
+                🗑 Sil
               </Button>
             )}
           </div>

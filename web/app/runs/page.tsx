@@ -78,6 +78,20 @@ export default function RunsPage() {
     }
   }, [fetchRuns]);
 
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/runs/${id}/delete`, { method: "POST" });
+      if (res.ok) {
+        await fetchRuns();
+      } else {
+        const err = await res.json();
+        alert(err.error || "Silme başarısız");
+      }
+    } catch (err) {
+      console.error("Silme başarısız:", err);
+    }
+  }, [fetchRuns]);
+
   const { runs, queue, runningCount, maxConcurrent } = data;
 
   if (loading) {
@@ -171,6 +185,7 @@ export default function RunsPage() {
               run={run}
               onStop={run.status === "running" ? handleStop : undefined}
               onRestart={run.status === "stopped" || run.status === "failed" ? handleRestart : undefined}
+              onDelete={run.status !== "running" ? handleDelete : undefined}
             />
           ))}
         </div>
