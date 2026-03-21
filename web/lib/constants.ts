@@ -13,53 +13,91 @@ export const PIPELINE_STEPS = [
 ] as const;
 
 export const CATEGORIES = [
+  // === YÜKSEK GELİR POTANSİYELLİ KATEGORİLER ===
   {
-    value: "productivity",
-    label: "Üretkenlik",
-    description: "Görev yönetimi, zaman takibi, verimlilik araçları",
-    icon: "⚡",
+    value: "b2b-operations",
+    label: "B2B Operasyon",
+    description: "Teklif yönetimi, sözleşme takibi, onay süreçleri, iş akışı otomasyonu",
+    icon: "🏢",
+  },
+  {
+    value: "compliance-legal",
+    label: "Uyum & Hukuk",
+    description: "KVKK uyum paneli, sözleşme yönetimi, e-imza, audit trail",
+    icon: "⚖️",
+  },
+  {
+    value: "revenue-ops",
+    label: "Gelir Operasyonları",
+    description: "Faturalama, teklif oluşturma, fiyatlandırma optimizasyonu, churn analizi",
+    icon: "💎",
   },
   {
     value: "developer-tools",
     label: "Geliştirici Araçları",
-    description: "Kod araçları, API test, dekümantasyon",
+    description: "API yönetimi, webhook inspector, deployment dashboard, log analizi",
     icon: "🛠️",
   },
   {
-    value: "health",
-    label: "Sağlık",
-    description: "Sağlık takibi, fitness, beslenme",
-    icon: "🏥",
+    value: "hr-people",
+    label: "İK & İnsan",
+    description: "İzin yönetimi, performans takibi, onboarding, maaş bordrosu",
+    icon: "👤",
+  },
+  {
+    value: "vertical-saas",
+    label: "Sektörel SaaS",
+    description: "Emlak, restoran, klinik, spor salonu, berber — sektöre özel çözümler",
+    icon: "🏪",
+  },
+  {
+    value: "data-tools",
+    label: "Veri Araçları",
+    description: "CSV→API dönüştürücü, veri temizleme, raporlama dashboard, ETL pipeline",
+    icon: "📊",
+  },
+  {
+    value: "ai-workflow",
+    label: "AI İş Akışları",
+    description: "AI-powered otomasyon, doküman analizi, akıllı sınıflandırma, içerik üretimi",
+    icon: "🤖",
+  },
+  // === ORTA GELİR POTANSİYELLİ KATEGORİLER ===
+  {
+    value: "productivity",
+    label: "Üretkenlik (B2B)",
+    description: "Takım dashboard'ları, proje takibi, zaman kaydı, retrospektif araçları",
+    icon: "⚡",
+  },
+  {
+    value: "marketing-tools",
+    label: "Pazarlama Araçları",
+    description: "SEO analizi, sosyal medya planlayıcı, landing page builder, A/B test",
+    icon: "📣",
   },
   {
     value: "finance",
-    label: "Finans",
-    description: "Bütçe yönetimi, yatırım takibi, faturalama",
+    label: "Finans (B2B)",
+    description: "Nakit akış tahmini, gider yönetimi, bütçe planlama, finansal raporlama",
     icon: "💰",
   },
   {
     value: "education",
-    label: "Eğitim",
-    description: "Öğrenme platformu, quiz, kurs yönetimi",
+    label: "Eğitim (EdTech)",
+    description: "Kurs platformu, sınav sistemi, öğrenci takibi, sertifika yönetimi",
     icon: "🎓",
   },
   {
-    value: "social",
-    label: "Sosyal",
-    description: "Topluluk, mesajlaşma, etkinlik yönetimi",
-    icon: "👥",
-  },
-  {
     value: "e-commerce",
-    label: "E-Ticaret",
-    description: "Mağaza yönetimi, ürün kataloğu, sipariş takibi",
+    label: "E-Ticaret Araçları",
+    description: "Envanter yönetimi, fiyat karşılaştırma, kargo takibi, dropship yönetimi",
     icon: "🛍️",
   },
   {
-    value: "ai",
-    label: "Yapay Zeka",
-    description: "AI araçları, chatbot, içerik üretimi",
-    icon: "🤖",
+    value: "customer-success",
+    label: "Müşteri Başarısı",
+    description: "Destek portalı, NPS takibi, müşteri sağlık skoru, feedback yönetimi",
+    icon: "🎯",
   },
 ] as const;
 

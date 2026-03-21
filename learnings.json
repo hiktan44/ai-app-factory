@@ -1,26 +1,103 @@
 {
-  "version": "1.0",
-  "total_runs": 0,
-  "last_updated": "",
+  "version": "2.0",
+  "total_runs": 5,
+  "last_updated": "2026-03-21",
   "patterns": {
-    "build_errors": [],
-    "architecture_mistakes": [],
-    "review_findings": [],
-    "successful_patterns": []
+    "build_errors": [
+      "Tailwind v4'te @theme bloğunda --spacing-* tanımlamak TÜM default spacing'i override eder — YAPMA",
+      "Tailwind v4'te @theme bloğunda --radius-* tanımlamak default border-radius'ları bozar — YAPMA",
+      "@theme bloğunda sadece --color-*, --font-family-*, --shadow-* tanımla, spacing/radius/animate dokunma",
+      "* { margin: 0; padding: 0 } reset'i Tailwind v4 preflight ile çakışıyor — KULLANMA",
+      "Next.js App Router'da (auth) gibi route group'lar URL'de görünmez — callback path'leri buna göre ayarla",
+      "Supabase self-hosted'da SMTP olmadan magic link/OTP çalışmaz — email/password auth kullan",
+      "GOTRUE_MAILER_AUTOCONFIRM=true ayarlanmazsa kullanıcılar email onayı bekler ve giriş yapamaz"
+    ],
+    "architecture_mistakes": [
+      "Çok fazla 3. parti API bağımlılığı eklemek — API kapanınca ürün ölür",
+      "Database şemasını over-normalize etmek — MVP için 5-8 tablo yeterli",
+      "Auth flow'u karmaşıklaştırmak — email/password + Google OAuth yeterli"
+    ],
+    "review_findings": [
+      "formatRunway gibi fonksiyonlarda Infinity/NaN kontrolü yapılmalı",
+      "native confirm() kullanma — custom modal kullan",
+      "Dead code bırakma — kullanılmayan import'ları temizle"
+    ],
+    "successful_patterns": [
+      "Runway.fm: Finansal hesaplama + dashboard kalıbı kullanıcılar için değerli",
+      "Tek sayfalık dashboard + modal pattern'i hızlı build için ideal",
+      "Supabase RLS + Auth entegrasyonu güvenli ve hızlı"
+    ],
+    "discover_learnings": [
+      "DayLog gibi basit not/log uygulamaları yeterli değer sunmuyor — Notion/Obsidian ile rekabet edilemez",
+      "CodeLens AI gibi büyük AI projeleri tek session'da yapılamıyor — scope'u daralt",
+      "FiskalAI gibi finans uygulamaları güvenlik kaygısı yaratıyor — B2B odaklan",
+      "Catchr (webhook inspector) iyi bir niş örneği — spesifik developer tool'lar değerli",
+      "PURE B2C'den kaçın — B2B/Prosumer segment WTP (willingness to pay) çok daha yüksek",
+      "Genel amaçlı uygulamalar (todo, not, tracker) üretme — niş ol veya ölme",
+      "'Excel'den SaaS'a' kalıbı en güvenli — insanlar zaten o işi yapıyor, sadece daha iyi araç ver",
+      "Compliance/uyumluluk araçları zorunlu ödeme yaratır — KVKK, e-fatura, ISO audit",
+      "İlk 5 dakikada değer gösteremeyen ürünler ölür — onboarding 5 dakika max olmalı"
+    ]
   },
   "rules": [
     "Next.js app router kullanırken 'use client' directive'ini unutma",
     "Supabase RLS policy'lerini her zaman enable et",
-    "Tailwind config'de content path'leri doğru ayarla",
+    "Tailwind v4'te @theme bloğunda SADECE color, font, shadow tanımla — spacing/radius/animate DOKUNMA",
     "OG image boyutu tam 1200x630 olmalı",
     "Her uygulamada /api/health endpoint'i oluştur (Coolify health check için)",
     "Dockerfile'da multi-stage build kullan (boyut optimizasyonu)",
-    "TypeScript strict mode her zaman açık olmalı"
+    "TypeScript strict mode her zaman açık olmalı",
+    "Supabase Auth: email/password + OAuth kullan, magic link SMTP gerektirir",
+    "GOTRUE_MAILER_AUTOCONFIRM=true yoksa kullanıcı giriş yapamaz",
+    "Route group'lar (auth) URL'de görünmez — path'leri buna göre yaz"
   ],
   "tech_preferences": {
     "preferred_stack": "Next.js 15 + Supabase + Tailwind v4",
     "deployment": "Coolify (Docker-based, self-hosted)",
     "package_manager": "pnpm",
-    "avoid": ["webpack manuel config", "class components", "CSS modules", "yarn"]
+    "avoid": [
+      "webpack manuel config",
+      "class components",
+      "CSS modules",
+      "yarn",
+      "@theme bloğunda --spacing-* tanımlama",
+      "@theme bloğunda --radius-* tanımlama",
+      "* { margin: 0; padding: 0 } reset",
+      "magic link auth (SMTP gerektirir)",
+      "3. parti API'ye tek bağımlılık (fallback sağla)"
+    ]
+  },
+  "idea_quality_standards": {
+    "minimum_score": 70,
+    "max_score": 160,
+    "required_sections": [
+      "5+ rakip analizi",
+      "2+ persona (120+ kelime)",
+      "talep kanıtları",
+      "go-to-market stratejisi",
+      "gelir projeksiyonu",
+      "fikir skor kartı"
+    ],
+    "avoid_ideas": [
+      "Genel todo/not uygulaması",
+      "Kişisel finans takibi",
+      "Portfolio site builder",
+      "AI chat wrapper",
+      "Sosyal medya clone",
+      "Haber/blog aggregator",
+      "Genel anket/form aracı",
+      "Basit timer/pomodoro",
+      "Genel habit tracker"
+    ],
+    "prefer_ideas": [
+      "Vertical SaaS (sektöre özel)",
+      "Excel→SaaS dönüşümü",
+      "Compliance/uyumluluk araçları",
+      "B2B workflow otomasyonu",
+      "Revenue enabler araçları",
+      "Data transformation araçları",
+      "Internal tool builder",
+      "Developer productivity araçları"
+    ]
   }
 }

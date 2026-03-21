@@ -648,18 +648,32 @@ adim_baslik "KEŞİF (Fikir Bul)"
 if [ -f "$PRE_APPROVED" ]; then
   log "Pre-approved ürün spec mevcut, keşif adımı atlanıyor."
 else
-  # Gemini/Grok ile araştır (ucuz), Claude fallback
+  # Araştırma ajanı: Gemini (web search kabiliyeti), Grok (trend analizi), Claude (derin analiz)
   run_step_smart "discover" \
     "${PROMPTS_DIR}/discover.md" \
     "Kategori: ${CATEGORY}
 Workspace dizini: ${WORKSPACE}
 Learnings dosyası: ${LEARNINGS_FILE}
 
-Görev:
-1. '${CATEGORY}' kategorisinde pazar araştırması yap
-2. ${LEARNINGS_FILE} dosyasını oku (varsa) ve önceki deneyimlerden faydalan
-3. Tek bir uygulama fikri belirle
-4. Detaylı ürün spesifikasyonunu ${WORKSPACE}/product-spec.md dosyasına yaz
+ÖNEMLİ TALİMATLAR:
+1. '${CATEGORY}' kategorisinde DERİN pazar araştırması yap
+2. ${LEARNINGS_FILE} dosyasını oku (varsa) — daha önce üretilen basit/düşük kaliteli fikirleri TEKRARLAMA
+3. Web araştırması yap:
+   - Reddit, Product Hunt, Indie Hackers'da bu kategoride kullanıcı şikayetlerini ara
+   - Mevcut SaaS rakiplerin fiyatlarını, G2/Capterra puanlarını araştır
+   - Google Trends ile talep trendlerini doğrula
+4. Fikir Skor Kartını doldur — minimum 70/160 puan alan fikri seç
+5. B2B veya Prosumer odaklı ol — pure B2C'den KAÇIN
+6. 'Boring but profitable' SaaS nişlerini tercih et (Excel→SaaS, compliance, vertical SaaS)
+7. İlk 5 dakikada değer gösterebilen bir ürün olmalı
+8. Detaylı ürün spesifikasyonunu ${WORKSPACE}/product-spec.md dosyasına yaz
+
+KALİTE KRİTERLERİ:
+- Minimum 5 rakip analizi (gerçek ürünler, gerçek fiyatlar)
+- 2 detaylı persona (her biri 120+ kelime)
+- Talep kanıtları bölümü (gerçek Reddit/forum linkleri veya alıntıları)
+- Go-to-Market stratejisi (ilk 100 kullanıcıyı nereden bulacağız)
+- Gelir projeksiyonu (ilk yıl MRR hedefi)
 
 Önemli: Çıktıyı mutlaka ${WORKSPACE}/product-spec.md dosyasına yaz." \
     "gemini grok openrouter claude"
