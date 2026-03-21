@@ -27,13 +27,15 @@ SETTINGS_FILE="${PROJECT_ROOT_TEMP}/settings.json"
 
 if [ -f "$SETTINGS_FILE" ]; then
   # settings.json'dan keyler okunur (jq ile)
+  CLAUDE_OAUTH_TOKEN_LOCAL=$(jq -r '.claudeOauthToken // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
   ANTHROPIC_API_KEY_LOCAL=$(jq -r '.anthropicApiKey // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
   GEMINI_API_KEY_LOCAL=$(jq -r '.geminiApiKey // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
   GROK_API_KEY_LOCAL=$(jq -r '.grokApiKey // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
   QWEN_API_KEY_LOCAL=$(jq -r '.qwenApiKey // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
   OPENROUTER_API_KEY_LOCAL=$(jq -r '.openrouterApiKey // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
 
-  # Eğer settings'te varsa env'i override et
+  # Eğer settings'te varsa env'i override et (OAuth token öncelikli)
+  [ -n "$CLAUDE_OAUTH_TOKEN_LOCAL" ] && export CLAUDE_CODE_OAUTH_TOKEN="$CLAUDE_OAUTH_TOKEN_LOCAL"
   [ -n "$ANTHROPIC_API_KEY_LOCAL" ] && export ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY_LOCAL"
   [ -n "$GEMINI_API_KEY_LOCAL" ] && export GEMINI_API_KEY="$GEMINI_API_KEY_LOCAL"
   [ -n "$GROK_API_KEY_LOCAL" ] && export GROK_API_KEY="$GROK_API_KEY_LOCAL"
@@ -176,9 +178,9 @@ call_claude() {
   local output_file="$3"
   local extra_flags="${4:-}"
 
-  # API key kontrolü
-  if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
-    log "HATA: ANTHROPIC_API_KEY boş — Claude CLI çalışamaz"
+  # Auth kontrolü: OAuth token VEYA API key gerekli
+  if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+    log "HATA: Ne CLAUDE_CODE_OAUTH_TOKEN ne de ANTHROPIC_API_KEY tanımlı — Claude CLI çalışamaz"
     return 1
   fi
 
@@ -233,7 +235,8 @@ RUNNER_EOF
     chown factory:factory "${prompt_file}" "${sysprompt_file}" "${runner_script}" 2>/dev/null || true
 
     HOME=/home/factory \
-    ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
+    ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}" \
+    CLAUDE_CODE_OAUTH_TOKEN="${CLAUDE_CODE_OAUTH_TOKEN:-}" \
     PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
     gosu factory "${runner_script}" \
       > "${output_file}" 2>"${stderr_file}" || exit_code=$?
@@ -252,12 +255,23 @@ RUNNER_EOF
 
   # stderr'i logla (debug için)
   if [ -f "${stderr_file}" ] && [ -s "${stderr_file}" ]; then
-    log "Claude CLI stderr: $(head -5 "${stderr_file}")"
+    log "Claude CLI stderr: $(head -10 "${stderr_file}")"
   fi
 
   # Exit code kontrolü
   if [ $exit_code -ne 0 ]; then
     log "HATA: Claude CLI exit code: ${exit_code}"
+    # Debug: stdout içeriğini de logla (hata mesajı stdout'a gidebilir)
+    if [ -f "${output_file}" ] && [ -s "${output_file}" ]; then
+      log "Claude CLI stdout (ilk 500 byte): $(head -c 500 "${output_file}")"
+    else
+      log "Claude CLI stdout: BOŞ veya dosya yok"
+    fi
+    # Debug: ortam bilgisi
+    if [ "$use_gosu" = true ]; then
+      log "  gosu kullanıldı, factory user HOME=/home/factory"
+      log "  /home/factory/.claude dizini: $(ls -la /home/factory/.claude/ 2>&1 | head -5)"
+    fi
     return 1
   fi
 
@@ -509,6 +523,7 @@ log "Workspace:   ${WORKSPACE}"
 log "Başlangıç:   $(date)"
 log ""
 log "Mevcut API Keyleri:"
+log "  CLAUDE_OAUTH: $([ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && echo 'YÜKLENDİ (Max Plan)' || echo 'YOK')"
 log "  ANTHROPIC: $([ -n "${ANTHROPIC_API_KEY:-}" ] && echo 'YÜKLENDİ' || echo 'YOK')"
 log "  GEMINI:    $([ -n "${GEMINI_API_KEY:-}" ] && echo 'YÜKLENDİ (ücretsiz)' || echo 'YOK')"
 log "  GROK:      $([ -n "${GROK_API_KEY:-}" ] && echo 'YÜKLENDİ' || echo 'YOK')"
@@ -528,14 +543,22 @@ else
   log "HATA: Claude CLI bulunamadı!"
 fi
 
-# 2. ANTHROPIC_API_KEY var mı?
-if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
-  log "KRİTİK HATA: ANTHROPIC_API_KEY yüklenmedi — pipeline çalışamaz!"
-  log "Lütfen .env veya Coolify ortam değişkenlerinde ANTHROPIC_API_KEY tanımlayın."
-  # Build/verify adımları Claude gerektiriyor, key olmadan devam etmenin anlamı yok
-  echo "ANTHROPIC_API_KEY eksik" > "${WORKSPACE}/build-status.txt"
+# 2. Claude auth var mı? (OAuth token VEYA API key)
+CLAUDE_AUTH_METHOD="none"
+if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+  CLAUDE_AUTH_METHOD="oauth"
+  log "  CLAUDE_CODE_OAUTH_TOKEN: ...${CLAUDE_CODE_OAUTH_TOKEN: -8} (OAuth/Max Plan)"
+elif [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+  CLAUDE_AUTH_METHOD="apikey"
+  log "  ANTHROPIC_API_KEY: ...${ANTHROPIC_API_KEY: -8} (API Key)"
+fi
+
+if [ "$CLAUDE_AUTH_METHOD" = "none" ]; then
+  log "KRİTİK HATA: Ne CLAUDE_CODE_OAUTH_TOKEN ne de ANTHROPIC_API_KEY tanımlı!"
+  log "Max Plan kullanıcıları: CLAUDE_CODE_OAUTH_TOKEN env var'ını tanımlayın."
+  log "API Key kullanıcıları: ANTHROPIC_API_KEY env var'ını tanımlayın."
+  echo "Claude auth eksik" > "${WORKSPACE}/build-status.txt"
 else
-  log "  ANTHROPIC_API_KEY: ...${ANTHROPIC_API_KEY: -8} (son 8 karakter)"
 
   # 3. Basit bir bağlantı testi yap (hızlı, minimal prompt)
   log "  Claude CLI bağlantı testi yapılıyor..."
@@ -547,7 +570,8 @@ else
   if command -v gosu &>/dev/null && [ "$(id -u)" = "0" ]; then
     log "  Root tespit edildi — gosu factory ile test yapılacak"
     HOME=/home/factory \
-    ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
+    ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}" \
+    CLAUDE_CODE_OAUTH_TOKEN="${CLAUDE_CODE_OAUTH_TOKEN:-}" \
     PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
     gosu factory claude -p "Say only: OK" \
       --dangerously-skip-permissions \
@@ -565,7 +589,25 @@ else
   if [ $local_test_exit -ne 0 ]; then
     log "  UYARI: Claude CLI bağlantı testi başarısız (exit code: ${local_test_exit})"
     if [ -f "${local_test_stderr}" ] && [ -s "${local_test_stderr}" ]; then
-      log "  stderr: $(cat "${local_test_stderr}" | head -3)"
+      log "  stderr: $(cat "${local_test_stderr}" | head -5)"
+    else
+      log "  stderr: BOŞ"
+    fi
+    if [ -f "${local_test_file}" ] && [ -s "${local_test_file}" ]; then
+      log "  stdout: $(head -c 500 "${local_test_file}")"
+    else
+      log "  stdout: BOŞ"
+    fi
+    # Debug: gosu ortam kontrolü
+    if command -v gosu &>/dev/null && [ "$(id -u)" = "0" ]; then
+      log "  DEBUG: claude binary: $(which claude 2>&1)"
+      log "  DEBUG: factory user id: $(gosu factory id 2>&1)"
+      log "  DEBUG: factory HOME test: $(HOME=/home/factory gosu factory sh -c 'echo HOME=$HOME; ls -la ~/.claude/ 2>&1' | head -5)"
+      log "  DEBUG: node version: $(gosu factory node --version 2>&1)"
+      # Inline test — claude'u doğrudan çalıştır (redirect olmadan)
+      local inline_test
+      inline_test=$(HOME=/home/factory ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" gosu factory claude -p "hi" --dangerously-skip-permissions --output-format json --max-turns 1 2>&1 || true)
+      log "  DEBUG: inline test (ilk 500 byte): $(echo "$inline_test" | head -c 500)"
     fi
     log "  Pipeline devam edecek ama Claude adımları başarısız olabilir."
   else

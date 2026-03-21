@@ -48,6 +48,7 @@ fi
 
 cat > /factory/settings.json <<ENDJSON
 {
+  "claudeOauthToken": "${CLAUDE_CODE_OAUTH_TOKEN:-}",
   "anthropicApiKey": "${ANTHROPIC_API_KEY:-}",
   "geminiApiKey": "${GEMINI_API_KEY:-}",
   "grokApiKey": "${GROK_API_KEY:-}",

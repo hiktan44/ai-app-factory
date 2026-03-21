@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 
 interface SettingsForm {
   // LLM Keys
+  claudeOauthToken: string;
   anthropicApiKey: string;
   geminiApiKey: string;
   grokApiKey: string;
@@ -28,6 +29,7 @@ interface TestState {
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<SettingsForm>({
+    claudeOauthToken: "",
     anthropicApiKey: "",
     geminiApiKey: "",
     grokApiKey: "",
@@ -150,13 +152,28 @@ export default function SettingsPage() {
       <div>
         <h2 className="text-lg font-semibold text-content mb-4">🤖 AI Model API Anahtarları</h2>
 
-        {/* Claude */}
+        {/* Claude OAuth (Max Plan) */}
+        <Card className="p-6 animate-fade-in mb-4 border-2 border-green-500/30">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-xl">🔑</div>
+            <div>
+              <h3 className="font-semibold text-content">Claude OAuth Token <span className="text-xs text-green-400 ml-1">Max Plan (Önerilen)</span></h3>
+              <p className="text-xs text-content-muted">Max Plan aboneliğinizle ücretsiz kullanım — API key&apos;den önceliklidir</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <input type="password" value={settings.claudeOauthToken} onChange={update("claudeOauthToken")} placeholder="sk-ant-oat01-..." className={inputClass} />
+            <TestBtn service="anthropic" keyField="claudeOauthToken" />
+          </div>
+        </Card>
+
+        {/* Claude API Key (alternatif) */}
         <Card className="p-6 animate-fade-in mb-4">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-xl">🧠</div>
             <div>
-              <h3 className="font-semibold text-content">Claude (Anthropic) <span className="text-xs text-danger ml-1">Kritik adımlar</span></h3>
-              <p className="text-xs text-content-muted">Kod yazma ve mimari — en pahalı, dikkatli kullanılır</p>
+              <h3 className="font-semibold text-content">Claude API Key (Anthropic) <span className="text-xs text-content-muted ml-1">Alternatif — kullandıkça öde</span></h3>
+              <p className="text-xs text-content-muted">OAuth token yoksa API key kullanılır</p>
             </div>
           </div>
           <div className="space-y-3">

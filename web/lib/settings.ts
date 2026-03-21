@@ -4,6 +4,7 @@ import { getProjectRoot } from "./file-utils";
 
 export interface AppSettings {
   // LLM Keys
+  claudeOauthToken: string; // Max Plan OAuth token (öncelikli)
   anthropicApiKey: string;
   geminiApiKey: string;
   grokApiKey: string;
@@ -36,6 +37,7 @@ export function readSettings(): AppSettings {
     /* ignore */
   }
   return {
+    claudeOauthToken: "",
     anthropicApiKey: "",
     geminiApiKey: "",
     grokApiKey: "",
