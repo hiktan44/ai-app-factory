@@ -10,7 +10,9 @@
       "* { margin: 0; padding: 0 } reset'i Tailwind v4 preflight ile çakışıyor — KULLANMA",
       "Next.js App Router'da (auth) gibi route group'lar URL'de görünmez — callback path'leri buna göre ayarla",
       "Supabase self-hosted'da SMTP olmadan magic link/OTP çalışmaz — email/password auth kullan",
-      "GOTRUE_MAILER_AUTOCONFIRM=true ayarlanmazsa kullanıcılar email onayı bekler ve giriş yapamaz"
+      "GOTRUE_MAILER_AUTOCONFIRM=true ayarlanmazsa kullanıcılar email onayı bekler ve giriş yapamaz",
+      "Coolify build hatası: docker-compose.yaml'da context alt dizin olmamalı — context: . kullan, Dockerfile proje kökünde olmalı",
+      "Coolify hatası: path \"/artifacts/xxx\" not found → build context ayarı yanlış"
     ],
     "architecture_mistakes": [
       "Çok fazla 3. parti API bağımlılığı eklemek — API kapanınca ürün ölür",

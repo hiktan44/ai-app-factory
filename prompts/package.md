@@ -49,9 +49,27 @@ node_modules
 ```
 
 ### 3. `docker-compose.yml` (`app/docker-compose.yml`)
-Lokal geliştirme için:
-- Uygulama servisi
-- Supabase (opsiyonel, hosted kullanılıyorsa gerek yok)
+Lokal geliştirme ve Coolify deploy için:
+- Build context HER ZAMAN `.` olsun (Coolify kök dizinden build eder)
+- Dockerfile location `Dockerfile` (app kökünde olduğu için)
+
+```yaml
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+```
+
+✅ ÖNEMLİ: Coolify build hatasını önlemek için:
+- Build context ASLA alt dizin olmamalı (örn `./video-ads-studio` gibi)
+- Her zaman `context: .` kullan
+- Dockerfile her zaman proje kökünde olmalı
 
 ### 4. `coolify-config.json` (`app/coolify-config.json`)
 ```json
