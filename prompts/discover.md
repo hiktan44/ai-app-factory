@@ -8,8 +8,9 @@ Fikir üretmeden önce şu adımları SİSTEMATİK olarak uygula:
 
 ### Adım 1: Talep Sinyalleri Araştırması
 Verilen kategoride şu kaynaklardan **gerçek talep sinyalleri** topla:
+- **Product Hunt:** Son 30 günde en çok oy alan, yorum alan ve trending ürünleri incele. Hangi nişler patlama yaşıyor? Hangi özellikler kullanıcıları heyecanlandırıyor?
+- **TrustMRR (https://trustmrr.com):** En çok gelir yapan bootstrapped SaaS ürünlerini analiz et. Hangi kategorilerde yüksek MRR var? Hangi kalıplar tekrar ediyor?
 - **Reddit/Forum şikayetleri:** "I wish there was...", "Is there a tool that...", "I'm tired of..." gibi ifadeler
-- **Product Hunt yorumları:** Hangi ürünler beğenildi, hangilerine "but I wish it also..." denildi
 - **G2/Capterra 1-2 yıldız yorumları:** Mevcut araçların nerelerde başarısız olduğu
 - **Twitter/X tartışmaları:** Hangi araçlardan insanlar vazgeçiyor ve neden
 - **Indie Hackers gelir raporları:** Hangi niş SaaS'lar aylık $1K-50K gelir yapıyor

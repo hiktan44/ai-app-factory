@@ -25,7 +25,10 @@
     "successful_patterns": [
       "Runway.fm: Finansal hesaplama + dashboard kalıbı kullanıcılar için değerli",
       "Tek sayfalık dashboard + modal pattern'i hızlı build için ideal",
-      "Supabase RLS + Auth entegrasyonu güvenli ve hızlı"
+      "Supabase RLS + Auth entegrasyonu güvenli ve hızlı",
+      "TrustMRR kalıpları: AI agentic tools, SEO/SMM araçları, AI video generation, white-label SaaS, LinkedIn outreach araçları",
+      "Low-effort high-margin ürünler: AI resumebuilder, undetectable AI, AI receptionist, marketing analytics",
+      "Bootstrapped SaaS: 3-5 özellik, tek kullanım durumu odaklı, 50-500$ MRR seviyesinde başarı oranı yüksek"
     ],
     "discover_learnings": [
       "DayLog gibi basit not/log uygulamaları yeterli değer sunmuyor — Notion/Obsidian ile rekabet edilemez",
@@ -36,7 +39,11 @@
       "Genel amaçlı uygulamalar (todo, not, tracker) üretme — niş ol veya ölme",
       "'Excel'den SaaS'a' kalıbı en güvenli — insanlar zaten o işi yapıyor, sadece daha iyi araç ver",
       "Compliance/uyumluluk araçları zorunlu ödeme yaratır — KVKK, e-fatura, ISO audit",
-      "İlk 5 dakikada değer gösteremeyen ürünler ölür — onboarding 5 dakika max olmalı"
+      "İlk 5 dakikada değer gösteremeyen ürünler ölür — onboarding 5 dakika max olmalı",
+      "Product Hunt'ta trending olan ürünleri analiz et — başarılı ürünlerin kalıplarını kopyala",
+      "TrustMRR.com'dan yüksek MRR yapan bootstrapped SaaS ürünlerini incele — bu kalıplar kanıtlanmış",
+      "Karmaşıklık skoru 6-9/10 arası ürünler daha değerli — basit MVP'den çık profesyonel ürün yap",
+      "Workflow otomasyon + dashboard kombinasyonu en çok başarı gösteren kalıp"
     ]
   },
   "rules": [
@@ -68,8 +75,10 @@
     ]
   },
   "idea_quality_standards": {
-    "minimum_score": 70,
+    "minimum_score": 80,
     "max_score": 160,
+    "minimum_complexity": 6,
+    "maximum_complexity": 9,
     "required_sections": [
       "5+ rakip analizi",
       "2+ persona (120+ kelime)",

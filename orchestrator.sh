@@ -659,10 +659,12 @@ Learnings dosyası: ${LEARNINGS_FILE}
 1. '${CATEGORY}' kategorisinde DERİN pazar araştırması yap
 2. ${LEARNINGS_FILE} dosyasını oku (varsa) — daha önce üretilen basit/düşük kaliteli fikirleri TEKRARLAMA
 3. Web araştırması yap:
-   - Reddit, Product Hunt, Indie Hackers'da bu kategoride kullanıcı şikayetlerini ara
+   - Product Hunt: Son 30 günde trending olan, en çok oy alan ürünleri analiz et. Hangi kalıplar başarılı?
+   - TrustMRR (https://trustmrr.com): En çok MRR yapan bootstrapped SaaS ürünlerini incele. Hangi nişlerde yüksek gelir var?
+   - Reddit, Indie Hackers'da bu kategoride kullanıcı şikayetlerini ara
    - Mevcut SaaS rakiplerin fiyatlarını, G2/Capterra puanlarını araştır
    - Google Trends ile talep trendlerini doğrula
-4. Fikir Skor Kartını doldur — minimum 70/160 puan alan fikri seç
+4. Fikir Skor Kartını doldur — minimum 80/160 puan alan fikri seç. Karmaşıklık skoru 6/10 ve 9/10 arası olmalı.
 5. B2B veya Prosumer odaklı ol — pure B2C'den KAÇIN
 6. 'Boring but profitable' SaaS nişlerini tercih et (Excel→SaaS, compliance, vertical SaaS)
 7. İlk 5 dakikada değer gösterebilen bir ürün olmalı
