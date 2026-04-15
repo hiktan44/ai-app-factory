@@ -30,17 +30,14 @@ services:
     labels:
       - coolify.managed=true
       - "traefik.enable=true"
-      # Service definition (shared by both HTTP and HTTPS routers)
-      - "traefik.http.services.http-0-pow0pe99mv2wgcwapdo381oq-web.loadbalancer.server.port=3000"
-      # HTTPS router (Coolify generates HTTP router but not HTTPS)
-      - "traefik.http.routers.https-0-pow0pe99mv2wgcwapdo381oq-web.entryPoints=https"
-      - "traefik.http.routers.https-0-pow0pe99mv2wgcwapdo381oq-web.rule=Host(`uygulama.seymata.com`) && PathPrefix(`/`)"
-      - "traefik.http.routers.https-0-pow0pe99mv2wgcwapdo381oq-web.service=http-0-pow0pe99mv2wgcwapdo381oq-web"
-      - "traefik.http.routers.https-0-pow0pe99mv2wgcwapdo381oq-web.tls=true"
-      - "traefik.http.routers.https-0-pow0pe99mv2wgcwapdo381oq-web.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.https-0-pow0pe99mv2wgcwapdo381oq-web.middlewares=gzip"
+      # Coolify otomatik olarak servis ve router oluşturur — HARDCODE edilmiş ID'leri KALDIR
+      - "traefik.http.services.web.loadbalancer.server.port=3000"
       # Traefik'e hangi network üzerinden routing yapacağını söyle
       - "traefik.docker.network=coolify"
+      
+      # NOT: Host kuralı ve domain ayarlarını Coolify UI'dan yap
+      # Coolify otomatik olarak gerekli tüm traefik ayarlarını oluşturur
+      # Manuel olarak router tanımlama — çakışma ve bad gateway hatasına sebep olur
     networks:
       - coolify
 
