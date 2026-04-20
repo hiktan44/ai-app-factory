@@ -35,16 +35,27 @@ else
   echo "[entrypoint] learnings.json zaten mevcut — korunuyor."
 fi
 
-# --- settings.json (env var'lardan oluştur, mevcut ayarları koru) ---
+# --- settings.json (env var'lardan oluştur, mevcut kullanıcı ayarlarını koru) ---
 # orchestrator.sh satır 28-42 bu dosyayı okur
 # Docker'da API key'ler env var olarak gelir (docker-compose.yaml)
-# Mevcut settings.json'dan maxTurns ve maxConcurrentRuns gibi kullanıcı ayarlarını koru
+# Mevcut settings.json'dan kullanıcı ayarlarını koru (UI'dan kaydedilmiş değerler)
 EXISTING_MAX_TURNS=50
 EXISTING_MAX_CONCURRENT=1
+EXISTING_VERCEL_TOKEN=""
+EXISTING_VERCEL_TEAM_ID=""
+EXISTING_GITHUB_ORG=""
 if [ -f /factory/settings.json ]; then
-  EXISTING_MAX_TURNS=$(cat /factory/settings.json | jq -r '.maxTurns // 50' 2>/dev/null || echo 50)
-  EXISTING_MAX_CONCURRENT=$(cat /factory/settings.json | jq -r '.maxConcurrentRuns // 1' 2>/dev/null || echo 1)
+  EXISTING_MAX_TURNS=$(jq -r '.maxTurns // 50' /factory/settings.json 2>/dev/null || echo 50)
+  EXISTING_MAX_CONCURRENT=$(jq -r '.maxConcurrentRuns // 1' /factory/settings.json 2>/dev/null || echo 1)
+  EXISTING_VERCEL_TOKEN=$(jq -r '.vercelToken // ""' /factory/settings.json 2>/dev/null || echo "")
+  EXISTING_VERCEL_TEAM_ID=$(jq -r '.vercelTeamId // ""' /factory/settings.json 2>/dev/null || echo "")
+  EXISTING_GITHUB_ORG=$(jq -r '.githubOrg // ""' /factory/settings.json 2>/dev/null || echo "")
 fi
+
+# Env var varsa onu kullan, yoksa mevcut ayarı koru
+FINAL_VERCEL_TOKEN="${VERCEL_TOKEN:-$EXISTING_VERCEL_TOKEN}"
+FINAL_VERCEL_TEAM_ID="${VERCEL_TEAM_ID:-$EXISTING_VERCEL_TEAM_ID}"
+FINAL_GITHUB_ORG="${GITHUB_ORG:-$EXISTING_GITHUB_ORG}"
 
 cat > /factory/settings.json <<ENDJSON
 {
@@ -56,7 +67,9 @@ cat > /factory/settings.json <<ENDJSON
   "minimaxApiKey": "${MINIMAX_API_KEY:-}",
   "openrouterApiKey": "${OPENROUTER_API_KEY:-}",
   "githubToken": "${GITHUB_TOKEN:-}",
-  "githubOrg": "${GITHUB_ORG:-}",
+  "githubOrg": "${FINAL_GITHUB_ORG}",
+  "vercelToken": "${FINAL_VERCEL_TOKEN}",
+  "vercelTeamId": "${FINAL_VERCEL_TEAM_ID}",
   "coolifyApiUrl": "${COOLIFY_API_URL:-}",
   "coolifyApiToken": "${COOLIFY_API_TOKEN:-}",
   "coolifyServerUuid": "${COOLIFY_SERVER_UUID:-}",
