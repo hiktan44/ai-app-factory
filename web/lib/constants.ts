@@ -8,7 +8,7 @@ export const PIPELINE_STEPS = [
   { number: 7, name: "marketing", label: "Pazarlama" },
   { number: 8, name: "screenshots", label: "Ekran Görüntüleri" },
   { number: 9, name: "package", label: "Paketleme" },
-  { number: 10, name: "deploy", label: "Deploy (Coolify)" },
+  { number: 10, name: "deploy", label: "Deploy (Vercel)" },
   { number: 11, name: "update_learnings", label: "Öğrenmeleri Güncelle" },
 ] as const;
 
@@ -102,6 +102,17 @@ export const CATEGORIES = [
 ] as const;
 
 export const TOTAL_STEPS = 11;
+
+export const LANDING_PAGE_STYLES = [
+  { id: "minimal_craft", label: "Minimal Craft", description: "Nefes alan typografi, serif başlıklar, tek accent rengi", reference: "Linear, Raycast" },
+  { id: "bold_vibrant", label: "Bold & Vibrant", description: "Cesur renkler, gradient hero, geometrik shapes", reference: "Vercel, Figma" },
+  { id: "dark_premium", label: "Dark Premium", description: "Koyu arka plan, glow aksanlar, glassmorphism", reference: "Supabase, Resend" },
+  { id: "organic_warm", label: "Organic & Warm", description: "Doğal tonlar, blob shapes, yumuşak köşeler", reference: "Notion, Calm" },
+  { id: "editorial_story", label: "Editorial & Story", description: "Gazete layout, asimetrik grid, pull quotes", reference: "Stripe, Apple" },
+  { id: "retro_modern", label: "Retro Modern", description: "Retro renkler, rounded shapes, noise texture", reference: "Gumroad" },
+  { id: "data_driven", label: "Data-Driven", description: "Dashboard preview, metrik kartları, monospace font", reference: "Plausible, PostHog" },
+  { id: "playful_saas", label: "Playful SaaS", description: "Renkli illüstrasyonlar, bouncy animasyon, pastel", reference: "Loom, Pitch" },
+] as const;
 
 export const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
   queued: { bg: "bg-yellow-500/10", text: "text-yellow-400", dot: "bg-yellow-400" },

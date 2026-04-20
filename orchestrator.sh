@@ -727,14 +727,22 @@ run_step_smart "build" \
   "Workspace dizini: ${WORKSPACE}
 Ürün spesifikasyonu: ${WORKSPACE}/product-spec.md
 Mimari dizini: ${WORKSPACE}/architecture/
+Landing page tasarım rehberi: ${PROMPTS_DIR}/landing-page.md
 Learnings dosyası: ${LEARNINGS_FILE}
 
 Görev:
 1. ${WORKSPACE}/product-spec.md ve ${WORKSPACE}/architecture/ dizinindeki tüm dokümanları oku
-2. ${LEARNINGS_FILE} dosyasını oku (varsa)
-3. ${WORKSPACE}/app/ dizinine tam çalışan bir Next.js uygulaması kodla
-4. Kodlama bitince ${WORKSPACE}/app/ dizininde 'pnpm run build' çalıştır
-5. Her dosyayı yazarken import/export tutarlılığını kontrol et" \
+2. ${PROMPTS_DIR}/landing-page.md dosyasını oku — LANDING PAGE TASARIM REHBERİ
+3. ${LEARNINGS_FILE} dosyasını oku (varsa)
+4. ${WORKSPACE}/app/ dizinine tam çalışan bir Next.js uygulaması kodla
+5. ÖNCELİKLİ: app/page.tsx olarak PROFESYONEL ve BENZERSİZ bir landing page oluştur:
+   - landing-page.md'deki stil havuzundan BİR STİL seç
+   - Ürüne özel metin yaz (generic değil!)
+   - Her section için ayrı component (app/components/landing/)
+   - Mobile-first responsive, animasyonlu, dark/light mode
+6. Dashboard ve app kısmını /dashboard route'unda oluştur
+7. Kodlama bitince ${WORKSPACE}/app/ dizininde 'pnpm run build' çalıştır
+8. Her dosyayı yazarken import/export tutarlılığını kontrol et" \
   "claude"
 
 # ─── ADIM 4: DOĞRULAMA ───────────────────────────────────────

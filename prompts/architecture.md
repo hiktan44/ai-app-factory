@@ -27,18 +27,27 @@ Next.js 15 App Router yapısına uygun olmalı.
 
 ```
 app/
+├── page.tsx                 # PUBLIC LANDING PAGE (ürünü anlatan, dönüşüm odaklı)
+├── components/
+│   └── landing/             # Landing page bölümleri
+│       ├── hero.tsx         # Hero section (başlık, CTA, sosyal kanıt)
+│       ├── features.tsx     # Özellik showcase (3-4 ana özellik)
+│       ├── how-it-works.tsx # Nasıl çalışır (3 adım)
+│       ├── testimonials.tsx # Müşteri yorumları
+│       ├── pricing.tsx      # Fiyatlandırma kartları
+│       ├── faq.tsx          # Sık sorulan sorular
+│       └── footer.tsx       # Footer
 ├── (auth)/
 │   ├── login/page.tsx
 │   └── callback/route.ts
 ├── (dashboard)/
-│   ├── layout.tsx          # Sidebar + Topbar layout
-│   ├── dashboard/page.tsx  # Ana dashboard
-│   └── [feature]/page.tsx  # Her feature için ayrı sayfa
+│   ├── layout.tsx           # Sidebar + Topbar layout
+│   ├── dashboard/page.tsx   # Ana dashboard
+│   └── [feature]/page.tsx   # Her feature için ayrı sayfa
 ├── api/
-│   ├── health/route.ts     # Coolify health check (ZORUNLU)
+│   ├── health/route.ts      # Health check (ZORUNLU)
 │   └── [endpoints]/route.ts
 ├── layout.tsx               # Root layout (fonts, metadata, providers)
-├── page.tsx                 # Landing page (public)
 └── globals.css              # Tailwind v4 config
 
 components/
@@ -57,6 +66,11 @@ lib/
 ├── constants.ts             # Sabit değerler
 └── validations.ts           # Zod/form validation schemas
 ```
+
+**ÖNEMLİ ROUTING:**
+- `app/page.tsx` = Public landing page (herkes görebilir, SEO)
+- `app/(dashboard)/` = Auth gerektiren uygulama kısmı
+- Landing page'den "Ücretsiz Başla" butonu → `/login` → `/dashboard`
 
 ### 2. `architecture/data_model.md`
 Supabase PostgreSQL şeması — **PRODUCTION-READY:**
@@ -118,7 +132,9 @@ Tüm API endpoint'leri ve Server Action'lar:
 ```
 
 ### 4. `architecture/design_tokens.json`
-Profesyonel, modern tasarım sistemi:
+Profesyonel, modern tasarım sistemi.
+**HER UYGULAMA İÇİN BENZERSİZ renk paleti ve landing page stili seç!**
+
 ```json
 {
   "colors": {
@@ -143,10 +159,16 @@ Profesyonel, modern tasarım sistemi:
   },
   "typography": {
     "font_family_sans": "Inter, system-ui, -apple-system, sans-serif",
-    "font_family_mono": "JetBrains Mono, Fira Code, monospace"
+    "font_family_mono": "JetBrains Mono, Fira Code, monospace",
+    "font_family_display": "Seçilen stile uygun display font"
   },
   "shadows": {
     "glow": "0 0 20px rgb(primary / 0.3)"
+  },
+  "landingPage": {
+    "style": "minimal_craft | bold_vibrant | dark_premium | organic_warm | editorial_story | retro_modern | data_driven | playful_saas",
+    "heroPattern": "gradient | mesh | dots | grid | waves | geometric | none",
+    "animationLevel": "subtle | moderate | none"
   }
 }
 ```
