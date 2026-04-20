@@ -10,9 +10,11 @@ interface RunHeaderProps {
   run: PipelineRun;
   onStop?: () => void;
   onRestart?: () => void;
+  onDeploy?: () => void;
+  isDeploying?: boolean;
 }
 
-export function RunHeader({ run, onStop, onRestart }: RunHeaderProps) {
+export function RunHeader({ run, onStop, onRestart, onDeploy, isDeploying }: RunHeaderProps) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
       <div>
@@ -57,6 +59,27 @@ export function RunHeader({ run, onStop, onRestart }: RunHeaderProps) {
               ↓ .pdf
             </Button>
           </>
+        )}
+        {/* Deploy button for completed runs */}
+        {run.status === "completed" && onDeploy && (
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={onDeploy}
+            disabled={isDeploying}
+          >
+            {isDeploying ? "⏳ Deploy..." : "🚀 Deploy Et"}
+          </Button>
+        )}
+        {/* Deploy URL if available */}
+        {run.deployUrl && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => window.open(run.deployUrl, "_blank")}
+          >
+            🌐 Canlı Site
+          </Button>
         )}
         {run.status === "running" && onStop && (
           <Button variant="danger" size="sm" onClick={onStop}>

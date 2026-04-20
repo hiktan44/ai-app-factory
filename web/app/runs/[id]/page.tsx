@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useMemo, useCallback } from "react";
+import { use, useMemo, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEventSource } from "@/hooks/use-event-source";
 import { useRunStatus } from "@/hooks/use-run-status";
@@ -10,6 +10,7 @@ import { StepProgress } from "@/components/run-detail/step-progress";
 import { LogViewer } from "@/components/run-detail/log-viewer";
 import { CostTracker } from "@/components/run-detail/cost-tracker";
 import { ArtifactBrowser } from "@/components/run-detail/artifact-browser";
+import { DebugFixPanel } from "@/components/run-detail/debug-fix-panel";
 import { PIPELINE_STEPS } from "@/lib/constants";
 
 export default function RunDetailPage({
@@ -19,6 +20,8 @@ export default function RunDetailPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [deployMessage, setDeployMessage] = useState<string | null>(null);
 
   // Fetch run metadata periodically
   const { run, loading } = useRunStatus(id, 5000);
@@ -55,7 +58,6 @@ export default function RunDetailPage({
       const res = await fetch(`/api/runs/${id}/restart`, { method: "POST" });
       const data = await res.json();
       if (data.newRunId) {
-        // Yeni run sayfasına yönlendir
         router.push(`/runs/${data.newRunId}`);
       }
     } catch (err) {
@@ -63,7 +65,26 @@ export default function RunDetailPage({
     }
   }, [id, router]);
 
+  const handleDeploy = useCallback(async () => {
+    setIsDeploying(true);
+    setDeployMessage(null);
+    try {
+      const res = await fetch(`/api/runs/${id}/deploy`, { method: "POST" });
+      const data = await res.json();
+      if (data.error) {
+        setDeployMessage(`❌ ${data.error}`);
+      } else {
+        setDeployMessage(`✅ Deploy başlatıldı! ${data.deployUrl || ""}`);
+      }
+    } catch (err) {
+      setDeployMessage(`❌ Deploy hatası: ${err}`);
+    } finally {
+      setIsDeploying(false);
+    }
+  }, [id]);
+
   const isRunning = run?.status === "running" || (isConnected && !isComplete);
+  const isCompleted = run?.status === "completed" || run?.status === "failed";
 
   if (loading && !run) {
     return (
@@ -101,9 +122,27 @@ export default function RunDetailPage({
         run={headerRun}
         onStop={isRunning ? handleStop : undefined}
         onRestart={!isRunning ? handleRestart : undefined}
+        onDeploy={isCompleted ? handleDeploy : undefined}
+        isDeploying={isDeploying}
       />
 
+      {/* Deploy message */}
+      {deployMessage && (
+        <div
+          className={`px-4 py-3 rounded-xl text-sm ${
+            deployMessage.startsWith("✅")
+              ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+              : "bg-danger/10 border border-danger/20 text-danger"
+          }`}
+        >
+          {deployMessage}
+        </div>
+      )}
+
       <StepProgress steps={steps} currentStep={currentStep} />
+
+      {/* Debug/Fix Panel — only for completed/failed runs */}
+      {isCompleted && <DebugFixPanel runId={id} isCompleted={isCompleted} />}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
