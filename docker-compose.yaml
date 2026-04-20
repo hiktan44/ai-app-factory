@@ -33,9 +33,8 @@ services:
       - VERCEL_TEAM_ID=${VERCEL_TEAM_ID:-}
       - NEXT_TELEMETRY_DISABLED=1
     restart: unless-stopped
-    # NOT: Traefik labels ve network Coolify tarafından otomatik eklenir.
-    # Manuel label tanımlamayın — çakışma ve 502 Bad Gateway hatasına sebep olur.
-    # Coolify docker-compose build pack SERVICE_FQDN_WEB env var'ından domain alır.
+    # NOT: Traefik labels Coolify tarafından otomatik eklenir (custom_labels API).
+    # Bu dosyada label tanımlamayın — Coolify dockercompose build pack tüm labels'ı override eder.
 
 volumes:
   # Named volume — deploy'lar arasında tüm factory verisi korunur

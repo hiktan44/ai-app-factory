@@ -78,7 +78,13 @@ export function getRunStatus(runId: string, logContent: string, webMeta: WebRunM
   const parsed = parseLogContent(logContent);
 
   if (parsed.isComplete) {
-    return parsed.buildSuccess ? "completed" : "failed";
+    // buildSuccess can be: true, false, or undefined
+    // undefined = log has no explicit "Build Durumu: BAŞARILI/BAŞARISIZ" marker
+    // If pipeline completed (PIPELINE TAMAMLANDI found) without explicit failure → completed
+    if (parsed.buildSuccess === false) {
+      return "failed";
+    }
+    return "completed";
   }
 
   // Also check build-status.txt as fallback (pipeline may not have logged "PIPELINE TAMAMLANDI"
