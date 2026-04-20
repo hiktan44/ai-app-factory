@@ -83,12 +83,12 @@ export function RunHeader({ run, onStop, onRestart, onDeploy, isDeploying }: Run
         )}
         {run.status === "running" && onStop && (
           <Button variant="danger" size="sm" onClick={onStop}>
-            Durdur
+            ⏹ Durdur
           </Button>
         )}
         {(run.status === "stopped" || run.status === "failed") && onRestart && (
           <Button variant="primary" size="sm" onClick={onRestart}>
-            ↺ Yeniden Başlat
+            🔄 Yeniden Başlat
           </Button>
         )}
       </div>

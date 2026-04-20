@@ -56,9 +56,9 @@ export function RunCard({ run, onStop, onRestart, onDelete }: RunCardProps) {
           <span className="font-mono">{formatCost(run.totalCostUsd)}</span>
         </div>
 
-        {/* Kontrol Düğmeleri */}
+        {/* Kontrol Düğmeleri — her zaman stopped/failed için göster */}
         {(onStop || onRestart || onDelete) && (
-          <div className="mt-3 pt-3 border-t border-edge flex items-center gap-2">
+          <div className="mt-3 pt-3 border-t border-edge flex items-center gap-2 flex-wrap">
             {onStop && (
               <Button
                 variant="danger"
@@ -70,12 +70,12 @@ export function RunCard({ run, onStop, onRestart, onDelete }: RunCardProps) {
                   onStop(run.id);
                 }}
               >
-                Durdur
+                ⏹ Durdur
               </Button>
             )}
             {onRestart && (
               <Button
-                variant="secondary"
+                variant="primary"
                 size="sm"
                 className="text-xs"
                 onClick={(e) => {
@@ -84,7 +84,7 @@ export function RunCard({ run, onStop, onRestart, onDelete }: RunCardProps) {
                   onRestart(run.id);
                 }}
               >
-                Yeniden Başlat
+                ↺ Yeniden Başlat
               </Button>
             )}
             {onDelete && (
