@@ -33,23 +33,9 @@ services:
       - VERCEL_TEAM_ID=${VERCEL_TEAM_ID:-}
       - NEXT_TELEMETRY_DISABLED=1
     restart: unless-stopped
-    labels:
-      - coolify.managed=true
-      - "traefik.enable=true"
-      # Coolify otomatik olarak servis ve router oluşturur — HARDCODE edilmiş ID'leri KALDIR
-      - "traefik.http.services.web.loadbalancer.server.port=3000"
-      # Traefik'e hangi network üzerinden routing yapacağını söyle
-      - "traefik.docker.network=coolify"
-      
-      # NOT: Host kuralı ve domain ayarlarını Coolify UI'dan yap
-      # Coolify otomatik olarak gerekli tüm traefik ayarlarını oluşturur
-      # Manuel olarak router tanımlama — çakışma ve bad gateway hatasına sebep olur
-    networks:
-      - coolify
-
-networks:
-  coolify:
-    external: true
+    # NOT: Traefik labels ve network Coolify tarafından otomatik eklenir.
+    # Manuel label tanımlamayın — çakışma ve 502 Bad Gateway hatasına sebep olur.
+    # Coolify docker-compose build pack SERVICE_FQDN_WEB env var'ından domain alır.
 
 volumes:
   # Named volume — deploy'lar arasında tüm factory verisi korunur
