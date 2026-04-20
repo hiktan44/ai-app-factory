@@ -1106,7 +1106,13 @@ log "  Loglar:       ${WORKSPACE}/logs/"
 log ""
 log "============================================================"
 
-echo ""
+# Tüm adımlar tamamlandı — build başarılıysa exit 0 dön
+# pipeline-manager.ts exit code'a bakarak status belirler (0=completed, else=failed)
+if [ "$BUILD_SUCCESS" = true ]; then
+  exit 0
+else
+  exit 1
+fi
 echo "=== AI APP FACTORY v2.0 - TAMAMLANDI ==="
 echo "Çıktı: ${WORKSPACE}"
 echo "Uygulama: ${WORKSPACE}/app/"

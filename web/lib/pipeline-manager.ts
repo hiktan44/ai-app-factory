@@ -278,7 +278,26 @@ class PipelineManager {
     });
 
     child.on("exit", (code) => {
-      const status = code === 0 ? "completed" : "failed";
+      // Check if build was actually successful by reading build-status.txt
+      // Exit code might be non-zero due to optional steps (screenshots, marketing, etc.)
+      let status: "completed" | "failed" = code === 0 ? "completed" : "failed";
+
+      if (status === "failed") {
+        try {
+          const buildStatusPath = path.join(getRunsDir(), runId, "build-status.txt");
+          if (fs.existsSync(buildStatusPath)) {
+            const buildStatus = fs.readFileSync(buildStatusPath, "utf-8").trim();
+            if (buildStatus === "BUILD_SUCCESS") {
+              // Build succeeded — optional later steps may have failed, treat as completed
+              status = "completed";
+              console.log(`[PipelineManager] ${runId}: exit code ${code} but BUILD_SUCCESS found — marking completed`);
+            }
+          }
+        } catch {
+          // Can't read build status — keep failed
+        }
+      }
+
       this.updateMeta(runId, {
         status,
         completedAt: new Date().toISOString(),
