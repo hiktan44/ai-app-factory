@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { getRunDir } from "@/lib/file-utils";
 import { readSettings } from "@/lib/settings";
+import { deployToVercel } from "@/lib/vercel-deployer";
 import { deployGeneratedApp } from "@/lib/coolify-deployer";
 import fs from "fs";
 import path from "path";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
@@ -23,12 +24,6 @@ export async function POST(
     }
 
     const settings = readSettings();
-    if (!settings.coolifyApiUrl || !settings.coolifyApiToken) {
-      return NextResponse.json(
-        { error: "Coolify API credentials ayarlanmamış. /settings sayfasından ekleyin." },
-        { status: 400 },
-      );
-    }
 
     if (!settings.githubToken) {
       return NextResponse.json(
@@ -46,11 +41,32 @@ export async function POST(
       if (match) appName = match[1].trim();
     }
 
-    const result = await deployGeneratedApp({
-      appName,
-      runId: id,
-      appDir,
-    });
+    // Check query param for target (default: vercel)
+    const url = new URL(request.url);
+    const target = url.searchParams.get("target") || "vercel";
+
+    let result;
+
+    if (target === "coolify") {
+      // Coolify deploy (legacy)
+      if (!settings.coolifyApiUrl || !settings.coolifyApiToken) {
+        return NextResponse.json(
+          { error: "Coolify API credentials ayarlanmamış." },
+          { status: 400 },
+        );
+      }
+      result = await deployGeneratedApp({ appName, runId: id, appDir });
+    } else {
+      // Vercel deploy (default)
+      const vercelToken = process.env.VERCEL_TOKEN || settings.vercelToken || "";
+      if (!vercelToken) {
+        return NextResponse.json(
+          { error: "Vercel token ayarlanmamış. VERCEL_TOKEN env var veya settings'e ekleyin." },
+          { status: 400 },
+        );
+      }
+      result = await deployToVercel({ appName, runId: id, appDir });
+    }
 
     // Save deploy result to run directory
     const deployDir = path.join(runDir, "deploy");

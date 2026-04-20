@@ -14,6 +14,10 @@ export interface AppSettings {
   // Git & Deploy
   githubToken: string;
   githubOrg: string;
+  // Vercel (primary deploy target)
+  vercelToken: string;
+  vercelTeamId: string;
+  // Coolify (secondary/self-hosted)
   coolifyApiUrl: string;
   coolifyApiToken: string;
   coolifyServerUuid: string;
@@ -46,6 +50,8 @@ export function readSettings(): AppSettings {
     openrouterApiKey: "",
     githubToken: "",
     githubOrg: "",
+    vercelToken: "",
+    vercelTeamId: "",
     coolifyApiUrl: "",
     coolifyApiToken: "",
     coolifyServerUuid: "",

@@ -16,6 +16,10 @@ interface SettingsForm {
   // Git & Deploy
   githubToken: string;
   githubOrg: string;
+  // Vercel
+  vercelToken: string;
+  vercelTeamId: string;
+  // Coolify
   coolifyApiUrl: string;
   coolifyApiToken: string;
   // Pipeline
@@ -38,6 +42,8 @@ export default function SettingsPage() {
     openrouterApiKey: "",
     githubToken: "",
     githubOrg: "",
+    vercelToken: "",
+    vercelTeamId: "",
     coolifyApiUrl: "",
     coolifyApiToken: "",
     maxTurns: 50,
@@ -284,13 +290,35 @@ export default function SettingsPage() {
           </div>
         </Card>
 
+        {/* Vercel */}
+        <Card className="p-6 animate-fade-in mb-4 border-2 border-blue-500/30">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-black to-gray-800 flex items-center justify-center text-xl">▲</div>
+            <div>
+              <h3 className="font-semibold text-content">Vercel <span className="text-xs text-blue-400 ml-1">Birincil Deploy Hedefi</span></h3>
+              <p className="text-xs text-content-muted">Next.js uygulamaları için en iyi deploy platformu — otomatik preview URL&apos;leri</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm text-content-secondary mb-1.5">API Token</label>
+              <input type="password" value={settings.vercelToken} onChange={update("vercelToken")} placeholder="Bearer token..." className={inputClass} />
+              <p className="text-xs text-content-muted mt-1">vercel.com/account/tokens adresinden oluşturun</p>
+            </div>
+            <div>
+              <label className="block text-sm text-content-secondary mb-1.5">Team ID (opsiyonel)</label>
+              <input type="text" value={settings.vercelTeamId} onChange={update("vercelTeamId")} placeholder="team_..." className={inputClass} />
+            </div>
+          </div>
+        </Card>
+
         {/* Coolify */}
         <Card className="p-6 animate-fade-in mb-4">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-xl">☁️</div>
             <div>
-              <h3 className="font-semibold text-content">Coolify</h3>
-              <p className="text-xs text-content-muted">Otomatik deployment için</p>
+              <h3 className="font-semibold text-content">Coolify <span className="text-xs text-content-muted ml-1">Self-hosted alternatif</span></h3>
+              <p className="text-xs text-content-muted">Kendi sunucunuza deployment için</p>
             </div>
           </div>
           <div className="space-y-3">
