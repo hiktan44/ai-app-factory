@@ -1,0 +1,21 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "AI App Factory (Web UI)",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["next", "dev", "--turbopack"],
+      "cwd": "web",
+      "port": 4000,
+      "autoPort": true
+    },
+    {
+      "name": "Runway.fm (Generated App)",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "next", "dev", "--turbopack"],
+      "cwd": "../runway-fm",
+      "port": 4001,
+      "autoPort": true
+    }
+  ]
+}
