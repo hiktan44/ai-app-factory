@@ -66,17 +66,27 @@ if [ -f /factory/settings.json ]; then
   EXISTING_CLAUDE_OAUTH=$(jq -r '.claudeOauthToken // ""' /factory/settings.json 2>/dev/null || echo "")
 fi
 
-# Env var varsa onu kullan, yoksa mevcut ayarı koru
-FINAL_VERCEL_TOKEN="${VERCEL_TOKEN:-$EXISTING_VERCEL_TOKEN}"
-FINAL_VERCEL_TEAM_ID="${VERCEL_TEAM_ID:-$EXISTING_VERCEL_TEAM_ID}"
+# Env var varsa VE maskeli değilse onu kullan, yoksa mevcut ayarı koru
+# Coolify API bazen maskelenmiş değerler döndürebilir (● karakteri içerir)
+is_valid_key() {
+  local val="$1"
+  # Boş veya ● (BLACK CIRCLE U+25CF) içeriyorsa geçersiz
+  if [ -z "$val" ] || echo "$val" | grep -q "●"; then
+    return 1
+  fi
+  return 0
+}
+
+if is_valid_key "${VERCEL_TOKEN:-}"; then FINAL_VERCEL_TOKEN="$VERCEL_TOKEN"; else FINAL_VERCEL_TOKEN="$EXISTING_VERCEL_TOKEN"; fi
+if is_valid_key "${VERCEL_TEAM_ID:-}"; then FINAL_VERCEL_TEAM_ID="$VERCEL_TEAM_ID"; else FINAL_VERCEL_TEAM_ID="$EXISTING_VERCEL_TEAM_ID"; fi
 FINAL_GITHUB_ORG="${GITHUB_ORG:-$EXISTING_GITHUB_ORG}"
-FINAL_ANTHROPIC_KEY="${ANTHROPIC_API_KEY:-$EXISTING_ANTHROPIC_KEY}"
-FINAL_GEMINI_KEY="${GEMINI_API_KEY:-$EXISTING_GEMINI_KEY}"
-FINAL_GROK_KEY="${GROK_API_KEY:-$EXISTING_GROK_KEY}"
-FINAL_OPENROUTER_KEY="${OPENROUTER_API_KEY:-$EXISTING_OPENROUTER_KEY}"
-FINAL_QWEN_KEY="${QWEN_API_KEY:-$EXISTING_QWEN_KEY}"
-FINAL_MINIMAX_KEY="${MINIMAX_API_KEY:-$EXISTING_MINIMAX_KEY}"
-FINAL_CLAUDE_OAUTH="${CLAUDE_CODE_OAUTH_TOKEN:-$EXISTING_CLAUDE_OAUTH}"
+if is_valid_key "${ANTHROPIC_API_KEY:-}"; then FINAL_ANTHROPIC_KEY="$ANTHROPIC_API_KEY"; else FINAL_ANTHROPIC_KEY="$EXISTING_ANTHROPIC_KEY"; fi
+if is_valid_key "${GEMINI_API_KEY:-}"; then FINAL_GEMINI_KEY="$GEMINI_API_KEY"; else FINAL_GEMINI_KEY="$EXISTING_GEMINI_KEY"; fi
+if is_valid_key "${GROK_API_KEY:-}"; then FINAL_GROK_KEY="$GROK_API_KEY"; else FINAL_GROK_KEY="$EXISTING_GROK_KEY"; fi
+if is_valid_key "${OPENROUTER_API_KEY:-}"; then FINAL_OPENROUTER_KEY="$OPENROUTER_API_KEY"; else FINAL_OPENROUTER_KEY="$EXISTING_OPENROUTER_KEY"; fi
+if is_valid_key "${QWEN_API_KEY:-}"; then FINAL_QWEN_KEY="$QWEN_API_KEY"; else FINAL_QWEN_KEY="$EXISTING_QWEN_KEY"; fi
+if is_valid_key "${MINIMAX_API_KEY:-}"; then FINAL_MINIMAX_KEY="$MINIMAX_API_KEY"; else FINAL_MINIMAX_KEY="$EXISTING_MINIMAX_KEY"; fi
+if is_valid_key "${CLAUDE_CODE_OAUTH_TOKEN:-}"; then FINAL_CLAUDE_OAUTH="$CLAUDE_CODE_OAUTH_TOKEN"; else FINAL_CLAUDE_OAUTH="$EXISTING_CLAUDE_OAUTH"; fi
 
 cat > /factory/settings.json <<ENDJSON
 {
