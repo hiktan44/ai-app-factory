@@ -90,11 +90,13 @@ export async function deployGeneratedApp(
       clone_url?: string;
       owner?: { login: string };
       message?: string;
+      errors?: { message?: string }[];
     };
 
     if (!repoRes.ok || !repoData.html_url) {
       // If repo already exists (422), try to use it
-      if (repoRes.status === 422 && repoData.message?.includes("already exists")) {
+      const errMessages = [repoData.message, ...(repoData.errors?.map(e => e.message) || [])].join(" ");
+      if (repoRes.status === 422 && (errMessages.includes("already exists") || errMessages.includes("creation failed"))) {
         // Fetch existing repo info
         const owner = githubOrg || (await fetch("https://api.github.com/user", {
           headers: { Authorization: `Bearer ${settings.githubToken}`, Accept: "application/vnd.github.v3+json" },

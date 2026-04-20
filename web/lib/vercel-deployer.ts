@@ -92,9 +92,11 @@ export async function deployToVercel(
       full_name?: string;
       owner?: { login: string };
       message?: string;
+      errors?: { message?: string }[];
     };
 
-    if (repoRes.status === 422 && repoData.message?.includes("already exists")) {
+    const errMessages = [repoData.message, ...(repoData.errors?.map(e => e.message) || [])].join(" ");
+    if (repoRes.status === 422 && (errMessages.includes("already exists") || errMessages.includes("creation failed"))) {
       // Use existing repo
       const owner = githubOrg || await getGitHubUsername(settings.githubToken);
       repoFullName = `${owner}/${repoName}`;
