@@ -44,28 +44,49 @@ EXISTING_MAX_CONCURRENT=1
 EXISTING_VERCEL_TOKEN=""
 EXISTING_VERCEL_TEAM_ID=""
 EXISTING_GITHUB_ORG=""
+EXISTING_ANTHROPIC_KEY=""
+EXISTING_GEMINI_KEY=""
+EXISTING_GROK_KEY=""
+EXISTING_OPENROUTER_KEY=""
+EXISTING_QWEN_KEY=""
+EXISTING_MINIMAX_KEY=""
+EXISTING_CLAUDE_OAUTH=""
 if [ -f /factory/settings.json ]; then
   EXISTING_MAX_TURNS=$(jq -r '.maxTurns // 50' /factory/settings.json 2>/dev/null || echo 50)
   EXISTING_MAX_CONCURRENT=$(jq -r '.maxConcurrentRuns // 1' /factory/settings.json 2>/dev/null || echo 1)
   EXISTING_VERCEL_TOKEN=$(jq -r '.vercelToken // ""' /factory/settings.json 2>/dev/null || echo "")
   EXISTING_VERCEL_TEAM_ID=$(jq -r '.vercelTeamId // ""' /factory/settings.json 2>/dev/null || echo "")
   EXISTING_GITHUB_ORG=$(jq -r '.githubOrg // ""' /factory/settings.json 2>/dev/null || echo "")
+  EXISTING_ANTHROPIC_KEY=$(jq -r '.anthropicApiKey // ""' /factory/settings.json 2>/dev/null || echo "")
+  EXISTING_GEMINI_KEY=$(jq -r '.geminiApiKey // ""' /factory/settings.json 2>/dev/null || echo "")
+  EXISTING_GROK_KEY=$(jq -r '.grokApiKey // ""' /factory/settings.json 2>/dev/null || echo "")
+  EXISTING_OPENROUTER_KEY=$(jq -r '.openrouterApiKey // ""' /factory/settings.json 2>/dev/null || echo "")
+  EXISTING_QWEN_KEY=$(jq -r '.qwenApiKey // ""' /factory/settings.json 2>/dev/null || echo "")
+  EXISTING_MINIMAX_KEY=$(jq -r '.minimaxApiKey // ""' /factory/settings.json 2>/dev/null || echo "")
+  EXISTING_CLAUDE_OAUTH=$(jq -r '.claudeOauthToken // ""' /factory/settings.json 2>/dev/null || echo "")
 fi
 
 # Env var varsa onu kullan, yoksa mevcut ayarı koru
 FINAL_VERCEL_TOKEN="${VERCEL_TOKEN:-$EXISTING_VERCEL_TOKEN}"
 FINAL_VERCEL_TEAM_ID="${VERCEL_TEAM_ID:-$EXISTING_VERCEL_TEAM_ID}"
 FINAL_GITHUB_ORG="${GITHUB_ORG:-$EXISTING_GITHUB_ORG}"
+FINAL_ANTHROPIC_KEY="${ANTHROPIC_API_KEY:-$EXISTING_ANTHROPIC_KEY}"
+FINAL_GEMINI_KEY="${GEMINI_API_KEY:-$EXISTING_GEMINI_KEY}"
+FINAL_GROK_KEY="${GROK_API_KEY:-$EXISTING_GROK_KEY}"
+FINAL_OPENROUTER_KEY="${OPENROUTER_API_KEY:-$EXISTING_OPENROUTER_KEY}"
+FINAL_QWEN_KEY="${QWEN_API_KEY:-$EXISTING_QWEN_KEY}"
+FINAL_MINIMAX_KEY="${MINIMAX_API_KEY:-$EXISTING_MINIMAX_KEY}"
+FINAL_CLAUDE_OAUTH="${CLAUDE_CODE_OAUTH_TOKEN:-$EXISTING_CLAUDE_OAUTH}"
 
 cat > /factory/settings.json <<ENDJSON
 {
-  "claudeOauthToken": "${CLAUDE_CODE_OAUTH_TOKEN:-}",
-  "anthropicApiKey": "${ANTHROPIC_API_KEY:-}",
-  "geminiApiKey": "${GEMINI_API_KEY:-}",
-  "grokApiKey": "${GROK_API_KEY:-}",
-  "qwenApiKey": "${QWEN_API_KEY:-}",
-  "minimaxApiKey": "${MINIMAX_API_KEY:-}",
-  "openrouterApiKey": "${OPENROUTER_API_KEY:-}",
+  "claudeOauthToken": "${FINAL_CLAUDE_OAUTH}",
+  "anthropicApiKey": "${FINAL_ANTHROPIC_KEY}",
+  "geminiApiKey": "${FINAL_GEMINI_KEY}",
+  "grokApiKey": "${FINAL_GROK_KEY}",
+  "qwenApiKey": "${FINAL_QWEN_KEY}",
+  "minimaxApiKey": "${FINAL_MINIMAX_KEY}",
+  "openrouterApiKey": "${FINAL_OPENROUTER_KEY}",
   "githubToken": "${GITHUB_TOKEN:-}",
   "githubOrg": "${FINAL_GITHUB_ORG}",
   "vercelToken": "${FINAL_VERCEL_TOKEN}",
