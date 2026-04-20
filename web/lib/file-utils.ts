@@ -68,18 +68,39 @@ export function getRunStatus(runId: string, logContent: string, webMeta: WebRunM
       process.kill(webMeta.pid, 0); // Signal 0 checks if process exists
       return "running";
     } catch {
-      // Process is dead — it's stopped
-      return "stopped";
+      // Process is dead — fall through to log check
     }
   }
 
-  if (webMeta?.status === "stopped") return "stopped";
-
-  // Parse log to determine status
+  // ALWAYS check log first — log is the source of truth for completed pipelines.
+  // webMeta might say "stopped" or "failed" due to orphan detection or non-zero exit,
+  // but if the pipeline log shows completion, that takes priority.
   const parsed = parseLogContent(logContent);
 
   if (parsed.isComplete) {
     return parsed.buildSuccess ? "completed" : "failed";
+  }
+
+  // Also check build-status.txt as fallback (pipeline may not have logged "PIPELINE TAMAMLANDI"
+  // but the build itself succeeded)
+  if (logContent.trim().length > 0) {
+    const runDir = getRunDir(runId);
+    try {
+      const buildStatusPath = path.join(runDir, "build-status.txt");
+      if (fs.existsSync(buildStatusPath)) {
+        const buildStatus = fs.readFileSync(buildStatusPath, "utf-8").trim();
+        if (buildStatus === "BUILD_SUCCESS") {
+          return "completed";
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  // If webMeta says stopped/failed and pipeline didn't complete
+  if (webMeta?.status === "stopped" || webMeta?.status === "failed") {
+    return "stopped";
   }
 
   // If there's log content but pipeline isn't complete and not running
