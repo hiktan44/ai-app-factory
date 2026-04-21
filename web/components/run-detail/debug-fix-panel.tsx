@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 interface DebugFixPanelProps {
   runId: string;
   isCompleted: boolean;
+  isFailed?: boolean;
 }
 
 interface FixResult {
@@ -24,7 +25,7 @@ interface FixResult {
   message?: string;
 }
 
-export function DebugFixPanel({ runId, isCompleted }: DebugFixPanelProps) {
+export function DebugFixPanel({ runId, isCompleted, isFailed }: DebugFixPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [issue, setIssue] = useState("");
   const [filePath, setFilePath] = useState("");
@@ -34,7 +35,10 @@ export function DebugFixPanel({ runId, isCompleted }: DebugFixPanelProps) {
 
   const handleAction = useCallback(
     async (action: "analyze" | "fix" | "run-dev") => {
-      if (action !== "run-dev" && !issue.trim()) return;
+      // For analyze/fix: use custom issue or default to auto-detect
+      const issueText = issue.trim() || (isFailed ? "Build başarısız olmuş. Hatanın nedenini bul ve çözüm öner." : "Uygulamayı analiz et.");
+
+      if (action === "run-dev" && !issueText) return;
       setLoading(true);
       setActiveAction(action);
       setResult(null);
@@ -44,7 +48,7 @@ export function DebugFixPanel({ runId, isCompleted }: DebugFixPanelProps) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            issue: issue.trim(),
+            issue: issueText,
             filePath: filePath.trim() || undefined,
             action,
           }),
@@ -63,10 +67,11 @@ export function DebugFixPanel({ runId, isCompleted }: DebugFixPanelProps) {
         setActiveAction("");
       }
     },
-    [runId, issue, filePath],
+    [runId, issue, filePath, isFailed],
   );
 
-  if (!isCompleted) return null;
+  // Show for both completed and failed runs
+  if (!isCompleted && !isFailed) return null;
 
   return (
     <div className="space-y-4">
@@ -115,19 +120,23 @@ export function DebugFixPanel({ runId, isCompleted }: DebugFixPanelProps) {
       {isOpen && (
         <Card className="p-5 border-brand/20 bg-brand/5">
           <h3 className="text-sm font-semibold text-content mb-1">
-            Sorunu Açıkla
+            {isFailed ? "Hata Analizi" : "Sorunu Açıkla"}
           </h3>
           <p className="text-xs text-content-muted mb-4">
-            Uygulamada neyin çalışmadığını açıkla. Claude analiz edip düzeltecek.
+            {isFailed
+              ? "Boş bırakırsan otomatik analiz yapar. İstersen sorunu detaylandır."
+              : "Uygulamada neyin çalışmadığını açıkla. Claude analiz edip düzeltecek."}
           </p>
 
           <div className="space-y-3">
             <textarea
               value={issue}
               onChange={(e) => setIssue(e.target.value)}
-              placeholder="Örn: Login sayfası 404 veriyor, dashboard yüklenmiyor, API endpoint çalışmıyor..."
+              placeholder={isFailed
+                ? "Opsiyonel: Ek detay ekle veya direkt 'Analiz Et' butonuna bas..."
+                : "Örn: Login sayfası 404 veriyor, dashboard yüklenmiyor, API endpoint çalışmıyor..."}
               className="w-full p-3 bg-surface-tertiary rounded-xl text-sm text-content border border-edge focus:border-brand focus:ring-1 focus:ring-brand outline-none resize-none transition-colors"
-              rows={4}
+              rows={3}
             />
 
             <input
@@ -142,7 +151,7 @@ export function DebugFixPanel({ runId, isCompleted }: DebugFixPanelProps) {
               <Button
                 variant="secondary"
                 size="sm"
-                disabled={loading || !issue.trim()}
+                disabled={loading}
                 onClick={() => handleAction("analyze")}
               >
                 {activeAction === "analyze" ? "⏳ Analiz Ediliyor..." : "🔍 Analiz Et"}
@@ -151,7 +160,7 @@ export function DebugFixPanel({ runId, isCompleted }: DebugFixPanelProps) {
               <Button
                 variant="primary"
                 size="sm"
-                disabled={loading || !issue.trim()}
+                disabled={loading}
                 onClick={() => handleAction("fix")}
               >
                 {activeAction === "fix" ? "⏳ Düzeltiliyor..." : "🔧 Analiz Et ve Düzelt"}
