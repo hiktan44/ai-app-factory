@@ -139,43 +139,65 @@ export function getAllModels() {
   }));
 }
 
-/** Kategori icin yenilikci uygulama fikri uret — Flash (hizli, yaratici) */
-export async function generateIdea(category: string): Promise<IdeaProposal> {
-  // Her çağrıda farklı fikir üretmek için rastgele bir tohum değeri ekle
+/** Kategori icin SaaS uygulama fikri uret — trend verileriyle desteklenmis */
+export async function generateIdea(category: string, trendContext?: string): Promise<IdeaProposal> {
   const seed = Math.random().toString(36).substring(2, 8);
   const angles = [
-    "niş bir alt segmente odaklan",
-    "B2B SaaS olarak tasarla",
-    "mobil-öncelikli bir yaklaşım benimse",
-    "yapay zeka destekli otomasyon ön plana çıkar",
-    "topluluk ve sosyal özellikler ekle",
-    "freelancer ve solo girişimcilere hitap et",
-    "küçük işletmelere odaklan",
-    "eğitim ve öğrenme boyutu ekle",
-    "no-code kullanıcıları hedefle",
-    "abonelik ekonomisini ön plana çıkar",
+    "ProductHunt'ta basarili bir urunun clone'unu/gelistirilmis versiyonunu yap",
+    "GitHub'da trend olan acik kaynak projenin managed SaaS versiyonunu yap",
+    "ProductHunt gunluk top 5'teki bir urunun daha iyi alternatifini yap",
+    "GitHub'da son 15 gunde en cok yildiz alan projeyi SaaS olarak paketle",
+    "ProductHunt aylik top 15'ten birebir clone yap — kanıtlanmis talep",
+    "GitHub trending projesinin hosted/managed versiyonunu yap (B2B SaaS)",
+    "Basarili bir SaaS urunun daha ucuz/basit alternatifini yap",
+    "Trend olan acik kaynak aracin UI-first cloud versiyonunu yap",
+    "Popüler bir gelistirici aracinin no-code SaaS versiyonunu yap",
+    "ProductHunt haftalik top 10'dan bir urunu farkli bir nis icin adapte et",
   ];
   const randomAngle = angles[Math.floor(Math.random() * angles.length)];
 
-  const prompt = `Sen bir yapay zeka uygulama fabrikasisin. Asagidaki kategori icin yenilikci, gercekci ve gelistirilebilir bir SaaS web uygulamasi fikri oner.
+  const trendSection = trendContext
+    ? `
+═══════════════════════════════════════
+GUNCEL TREND VERİLERİ (${new Date().toLocaleDateString("tr-TR")})
+═══════════════════════════════════════
+
+${trendContext}
+
+═══════════════════════════════════════
+`
+    : "";
+
+  const prompt = `Sen bir SaaS startup danismani ve urun stratejistisin. Gorevin: gercekte basarili olan uygulamalarin clone'larini veya gelistirilmis versiyonlarini onermek.
 
 Kategori: ${category}
 Oturum: ${seed}
-Odak acisi: ${randomAngle}
+Strateji: ${randomAngle}
 
-ONEMLI: Her seferinde tamamen FARKLI ve YENI bir fikir oner. Onceki fikirlerden ilham alma. Bu oturum kodu benzersiz bir fikir uret: ${seed}
+${trendSection}
 
-Asagidaki JSON formatinda SADECE JSON olarak cevap ver, baska hicbir sey yazma:
+## KURALLAR
+
+1. SADECE SaaS uygulamalar oner (subscription/freemium gelir modeli)
+2. ProductHunt'ta gunluk top 5, haftalik top 10, aylik top 15'e girmis basarili urunlerin benzerlerini/clone'larini oner
+3. GitHub'da son 15 gunde yildiz sayisi en fazla artan projelerin managed/hosted SaaS versiyonlarini oner
+4. GitHub aylik top 10'daki projeleri SaaS olarak paketlenebilecek fikirler olarak deger
+5. Onerdigin fikir GERCEK bir urune dayali olmali — "X'in clone'u" veya "Y'nin daha iyi versiyonu" seklinde belirt
+6. Fikrin ilham aldigi kaynak urunu (ProductHunt veya GitHub projesi) ac acik belirt
+7. Basit todo/note uygulamalari ONERME — gercek SaaS degerinde urunler oner
+8. Her seferinde tamamen FARKLI ve YENI bir fikir oner. Oturum kodu: ${seed}
+
+Asagidaki JSON formatinda SADECE JSON olarak cevap ver:
 
 {
-  "appName": "Uygulama adi (yaratici, akilda kalici)",
+  "appName": "Uygulama adi (yaratici, akilda kalici, Ingilizce)",
   "tagline": "Kisa slogan (max 10 kelime)",
-  "description": "Detayli aciklama (3-5 cumle, uygulamanin ne yaptigini, hedef kitleyi ve farkini anlat)",
-  "features": ["Ozellik 1", "Ozellik 2", "Ozellik 3", "Ozellik 4", "Ozellik 5"],
-  "techStack": ["Next.js", "Tailwind CSS", "diger teknolojiler"],
-  "targetAudience": "Hedef kitle aciklamasi",
-  "monetization": "Gelir modeli",
-  "uniqueValue": "Rakiplerden ne farki var (1-2 cumle)"
+  "description": "3-5 cumle: Ne yapar, kimin icin, hangi basarili urunden ilham alindi, fark ne. Ilham alinan urunun adini ve platformunu (ProductHunt/GitHub) acikca belirt.",
+  "features": ["SaaS Ozellik 1", "SaaS Ozellik 2", "SaaS Ozellik 3", "SaaS Ozellik 4", "SaaS Ozellik 5"],
+  "techStack": ["Next.js 15", "Supabase", "Tailwind CSS v4", "TypeScript"],
+  "targetAudience": "Hedef kitle (SaaS musterileri — B2B veya B2C belirt)",
+  "monetization": "SaaS gelir modeli: Free tier + Pro ($X/ay) + Enterprise ($Y/ay) seklinde yaz",
+  "uniqueValue": "Ilham alinan urununden ne farki var? Neden kullanicilar bunu secmeli? (1-2 cumle)"
 }`;
 
   const text = await callGemini({
