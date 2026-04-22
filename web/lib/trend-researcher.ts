@@ -55,6 +55,8 @@ export interface TrendData {
   // GitHub
   githubTrendingDaily: GitHubTrendingRepo[];
   githubTrendingWeekly: GitHubTrendingRepo[];
+  github15DayRising: GitHubTrendingRepo[];
+  githubMonthlyTop: GitHubTrendingRepo[];
   // Analiz
   marketGaps: MarketGap[];
   competitors: CompetitorInfo[];
@@ -165,6 +167,130 @@ export async function fetchGitHubTrending(
     }));
   } catch (e) {
     console.error("[TrendResearcher] GitHub trending error:", e);
+    return [];
+  }
+}
+
+/**
+ * GitHub — son 15 günde yıldız sayısı en fazla artan projeler
+ */
+export async function fetchGitHub15DayRising(category?: string): Promise<GitHubTrendingRepo[]> {
+  try {
+    const settings = readSettings();
+    const githubToken = settings.githubToken || process.env.GITHUB_TOKEN || "";
+
+    const headers: Record<string, string> = {
+      "Accept": "application/vnd.github.v3+json",
+      "User-Agent": "AI-App-Factory/2.0",
+    };
+    if (githubToken) {
+      headers["Authorization"] = `Bearer ${githubToken}`;
+    }
+
+    const dateCutoff = new Date();
+    dateCutoff.setDate(dateCutoff.getDate() - 15);
+    const dateStr = dateCutoff.toISOString().split("T")[0];
+
+    const keywords = category ? getCategoryKeywords(category) : [];
+    const keywordQuery = keywords.length > 0
+      ? `+${keywords.slice(0, 2).map((k) => `topic:${k}`).join("+OR+")}`
+      : "";
+
+    const query = `stars:>100+pushed:>${dateStr}${keywordQuery}`;
+    const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=30`;
+
+    const res = await fetch(url, { headers });
+    if (!res.ok) return [];
+
+    const data = await res.json() as {
+      items: Array<{
+        name: string;
+        full_name: string;
+        description: string | null;
+        stargazers_count: number;
+        forks_count: number;
+        language: string | null;
+        html_url: string;
+        topics: string[];
+      }>;
+    };
+
+    return (data.items || []).map((repo) => ({
+      name: repo.name,
+      fullName: repo.full_name,
+      description: repo.description || "",
+      stars: repo.stargazers_count,
+      starsToday: 0,
+      forks: repo.forks_count,
+      language: repo.language || "Unknown",
+      url: repo.html_url,
+      topics: repo.topics || [],
+      builtBy: [],
+    }));
+  } catch (e) {
+    console.error("[TrendResearcher] GitHub 15-day rising error:", e);
+    return [];
+  }
+}
+
+/**
+ * GitHub — aylık en popüler projeler (son 30 gün, en çok yıldızlı)
+ */
+export async function fetchGitHubMonthlyTop(category?: string): Promise<GitHubTrendingRepo[]> {
+  try {
+    const settings = readSettings();
+    const githubToken = settings.githubToken || process.env.GITHUB_TOKEN || "";
+
+    const headers: Record<string, string> = {
+      "Accept": "application/vnd.github.v3+json",
+      "User-Agent": "AI-App-Factory/2.0",
+    };
+    if (githubToken) {
+      headers["Authorization"] = `Bearer ${githubToken}`;
+    }
+
+    const dateCutoff = new Date();
+    dateCutoff.setDate(dateCutoff.getDate() - 30);
+    const dateStr = dateCutoff.toISOString().split("T")[0];
+
+    const keywords = category ? getCategoryKeywords(category) : [];
+    const keywordQuery = keywords.length > 0
+      ? `+${keywords.slice(0, 2).map((k) => `topic:${k}`).join("+OR+")}`
+      : "";
+
+    const query = `stars:>200+created:>${dateStr}${keywordQuery}`;
+    const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=20`;
+
+    const res = await fetch(url, { headers });
+    if (!res.ok) return [];
+
+    const data = await res.json() as {
+      items: Array<{
+        name: string;
+        full_name: string;
+        description: string | null;
+        stargazers_count: number;
+        forks_count: number;
+        language: string | null;
+        html_url: string;
+        topics: string[];
+      }>;
+    };
+
+    return (data.items || []).map((repo) => ({
+      name: repo.name,
+      fullName: repo.full_name,
+      description: repo.description || "",
+      stars: repo.stargazers_count,
+      starsToday: 0,
+      forks: repo.forks_count,
+      language: repo.language || "Unknown",
+      url: repo.html_url,
+      topics: repo.topics || [],
+      builtBy: [],
+    }));
+  } catch (e) {
+    console.error("[TrendResearcher] GitHub monthly top error:", e);
     return [];
   }
 }
@@ -349,13 +475,14 @@ export async function researchTrends(
   category: string,
   ideaHint?: string
 ): Promise<TrendData> {
-  // Paralel veri çekme
   const [
     phDaily,
     phWeekly,
     phMonthly,
     ghDaily,
     ghWeekly,
+    gh15Day,
+    ghMonthly,
     ghRelated,
   ] = await Promise.allSettled([
     fetchProductHunt("daily"),
@@ -363,6 +490,8 @@ export async function researchTrends(
     fetchProductHunt("monthly"),
     fetchGitHubTrending("daily", undefined, category),
     fetchGitHubTrending("weekly", undefined, category),
+    fetchGitHub15DayRising(category),
+    fetchGitHubMonthlyTop(category),
     ideaHint ? fetchGitHubRelated(ideaHint, category) : Promise.resolve([]),
   ]);
 
@@ -374,30 +503,28 @@ export async function researchTrends(
   const productHuntMonthly = getValue(phMonthly, []);
   const githubTrendingDaily = getValue(ghDaily, []);
   const githubTrendingWeekly = getValue(ghWeekly, []);
+  const github15DayRising = getValue(gh15Day, []);
+  const githubMonthlyTop = getValue(ghMonthly, []);
   const relatedRepos = getValue(ghRelated, []);
 
-  // Birleşik trend anahtar kelimeleri çıkar
   const trendingKeywords = extractTrendingKeywords([
     ...productHuntDaily,
     ...productHuntWeekly,
     ...githubTrendingDaily,
   ]);
 
-  // Rakip analizi
   const competitors = buildCompetitorList(productHuntWeekly, relatedRepos, category);
-
-  // Pazar boşlukları
   const marketGaps = extractMarketGaps(productHuntWeekly, githubTrendingWeekly, category);
-
-  // SaaS fırsatları
-  const saasOpportunities = extractSaasOpportunities(productHuntMonthly, githubTrendingWeekly);
+  const saasOpportunities = extractSaasOpportunities(productHuntMonthly, github15DayRising.length > 0 ? github15DayRising : githubTrendingWeekly);
 
   return {
-    productHuntDaily: productHuntDaily.slice(0, 10),
+    productHuntDaily: productHuntDaily.slice(0, 5),
     productHuntWeekly: productHuntWeekly.slice(0, 10),
-    productHuntMonthly: productHuntMonthly.slice(0, 10),
+    productHuntMonthly: productHuntMonthly.slice(0, 15),
     githubTrendingDaily: githubTrendingDaily.slice(0, 10),
     githubTrendingWeekly: githubTrendingWeekly.slice(0, 15),
+    github15DayRising: github15DayRising.slice(0, 15),
+    githubMonthlyTop: githubMonthlyTop.slice(0, 10),
     marketGaps: marketGaps.slice(0, 5),
     competitors: competitors.slice(0, 6),
     trendingKeywords: trendingKeywords.slice(0, 15),
@@ -567,10 +694,11 @@ export async function generateIdeaWithTrends(
 
   const trendContext = buildTrendContext(trendData);
 
-  const prompt = `Sen bir startup danışmanı ve ürün stratejistisin. Aşağıdaki güncel trend verilerini analiz ederek ${category} kategorisi için YENİ ve ÖZGÜN bir SaaS fikri öner.
+  const prompt = `Sen bir SaaS startup danışmanı ve ürün stratejistisin. Görevin: aşağıdaki güncel trend verilerindeki BAŞARILI ürünlerin clone'unu veya geliştirilmiş versiyonunu önermek.
 
 Oturum Kodu: ${seed}
 Odak Açısı: ${angle}
+Kategori: ${category}
 
 ═══════════════════════════════════════
 GÜNCEL TREND VERİLERİ (${new Date().toLocaleDateString("tr-TR")})
@@ -582,13 +710,15 @@ ${trendContext}
 GÖREV
 ═══════════════════════════════════════
 
-Bu verilerden ilham alarak:
-1. Pazar boşluğunu tespit et
-2. Mevcut çözümlerin zayıf noktasını bul
-3. Trend doğrulayan benzersiz bir SaaS fikri üret
-4. Sadece oturum kodu ${seed} için geçerli, TEK BİR fikir öner
+KURALLAR:
+1. Yukarıdaki ProductHunt veya GitHub trendlerinden BİR GERÇEK ÜRÜN seç
+2. O ürünün clone'unu, geliştirilmiş versiyonunu veya ucuz alternatifini öner
+3. İlham aldığın ürünün adını, platformunu ve URL'sini açıkça belirt
+4. Basit todo/not uygulamaları ÖNERİLMEZ — gerçek SaaS değerinde ürünler öner
+5. Sadece oturum kodu ${seed} için geçerli, TEK BİR SaaS fikri öner
+6. GitHub projeleri için managed/hosted SaaS versiyonunu düşün
 
-ÖNEMLI: Rakiplerin eksiklerini kapatan, trend verilerle desteklenen bir fikir olsun.
+ÖNEMLI: İlham aldığın ürünün ismini ve URL'sini inspirationSources'ta belirt.
 
 Aşağıdaki JSON formatında SADECE JSON döndür (başka hiçbir şey yazma):
 
@@ -661,57 +791,87 @@ Aşağıdaki JSON formatında SADECE JSON döndür (başka hiçbir şey yazma):
 function buildTrendContext(data: TrendData): string {
   const lines: string[] = [];
 
-  // ProductHunt Günlük
+  // ProductHunt Günlük Top 5
   if (data.productHuntDaily.length > 0) {
-    lines.push("## 📈 ProductHunt — BUGÜNÜN EN İYİLERİ");
+    lines.push("## 📈 ProductHunt — GÜNLÜK TOP 5 (Bugün)");
+    lines.push("Bu ürünlerin SaaS versiyonunu/clone'unu yapabilirsin:");
     for (const p of data.productHuntDaily.slice(0, 5)) {
       lines.push(`• **${p.name}** (${p.votesCount}🔺) — ${p.tagline}`);
+      lines.push(`  ${p.description.slice(0, 150)}`);
+      lines.push(`  URL: ${p.url}`);
+      if (p.isSaas) lines.push(`  ✅ SaaS ürün — doğrudan clone edilebilir`);
       if (p.topics.length > 0) lines.push(`  Konular: ${p.topics.slice(0, 4).join(", ")}`);
     }
     lines.push("");
   }
 
-  // ProductHunt Haftalık
+  // ProductHunt Haftalık Top 10
   if (data.productHuntWeekly.length > 0) {
-    lines.push("## 🔥 ProductHunt — BU HAFTANİN EN İYİLERİ");
-    for (const p of data.productHuntWeekly.slice(0, 5)) {
+    lines.push("## 🔥 ProductHunt — HAFTALIK TOP 10");
+    lines.push("Bu haftanın en popüler ürünleri — bunları SaaS olarak klonla veya daha iyi versiyonunu yap:");
+    for (const p of data.productHuntWeekly.slice(0, 10)) {
       lines.push(`• **${p.name}** (${p.votesCount}🔺) — ${p.tagline}`);
-      if (p.isSaas) lines.push(`  ✅ SaaS ürün`);
+      if (p.isSaas) lines.push(`  ✅ SaaS — birebir clone veya geliştirilmiş versiyon yapılabilir`);
     }
     lines.push("");
   }
 
-  // ProductHunt Aylık
+  // ProductHunt Aylık Top 15
   if (data.productHuntMonthly.length > 0) {
-    lines.push("## 🏆 ProductHunt — BU AYIN EN İYİLERİ");
-    for (const p of data.productHuntMonthly.slice(0, 5)) {
+    lines.push("## 🏆 ProductHunt — AYLIK TOP 15");
+    lines.push("Son 30 günün en başarılı ürünleri — kanıtlanmış talep:");
+    for (const p of data.productHuntMonthly.slice(0, 15)) {
       lines.push(`• **${p.name}** (${p.votesCount}🔺) — ${p.tagline}`);
     }
     lines.push("");
   }
 
-  // GitHub Günlük Trending
+  // GitHub 15 Gün Rising
+  if (data.github15DayRising.length > 0) {
+    lines.push("## 🚀 GitHub — SON 15 GÜNDE EN FAZLA YILDIZ KAZANAN PROJELER");
+    lines.push("Bu projeler hızla popülerleşiyor. Managed/hosted SaaS versiyonu yapılabilir:");
+    for (const r of data.github15DayRising.slice(0, 15)) {
+      lines.push(`• **${r.name}** (${r.stars.toLocaleString()}⭐ ${r.language})`);
+      lines.push(`  Ne yapar: ${r.description}`);
+      lines.push(`  GitHub: ${r.url}`);
+      if (r.topics.length > 0) lines.push(`  Etiketler: ${r.topics.slice(0, 5).join(", ")}`);
+    }
+    lines.push("");
+  }
+
+  // GitHub Aylık Top 10
+  if (data.githubMonthlyTop.length > 0) {
+    lines.push("## 📊 GitHub — AYLIK TOP 10 (Son 30 Gün)");
+    lines.push("Bu ay oluşturulmuş ve en çok yıldız almış projeler:");
+    for (const r of data.githubMonthlyTop.slice(0, 10)) {
+      lines.push(`• **${r.name}** (${r.stars.toLocaleString()}⭐ ${r.language}) — ${r.description}`);
+      lines.push(`  GitHub: ${r.url}`);
+    }
+    lines.push("");
+  }
+
+  // GitHub Günlük & Haftalık
   if (data.githubTrendingDaily.length > 0) {
-    lines.push("## ⚡ GitHub — BUGÜN YENİ YILDIZ ALAN PROJELER");
+    lines.push("## ⚡ GitHub — BUGÜN TREND OLAN PROJELER");
     for (const r of data.githubTrendingDaily.slice(0, 6)) {
       lines.push(`• **${r.name}** (${r.stars.toLocaleString()}⭐ ${r.language}) — ${r.description}`);
-      if (r.topics.length > 0) lines.push(`  Etiketler: ${r.topics.slice(0, 4).join(", ")}`);
+      lines.push(`  GitHub: ${r.url}`);
     }
     lines.push("");
   }
 
-  // GitHub Haftalık Trending
   if (data.githubTrendingWeekly.length > 0) {
-    lines.push("## 📊 GitHub — BU HAFTA EN ÇOK YILDIZ ALAN PROJELER");
+    lines.push("## 📦 GitHub — BU HAFTA EN ÇOK YILDIZ ALAN PROJELER");
     for (const r of data.githubTrendingWeekly.slice(0, 8)) {
       lines.push(`• **${r.name}** (${r.stars.toLocaleString()}⭐) — ${r.description}`);
+      lines.push(`  GitHub: ${r.url}`);
     }
     lines.push("");
   }
 
   // Pazar Boşlukları
   if (data.marketGaps.length > 0) {
-    lines.push("## 🎯 TESPIT EDİLEN PAZAR BOŞLUKLARI");
+    lines.push("## 🎯 TESPİT EDİLEN PAZAR BOŞLUKLARI");
     for (const g of data.marketGaps) {
       lines.push(`• Problem: ${g.problem}`);
       lines.push(`  Fırsat: ${g.opportunity}`);
