@@ -5,221 +5,256 @@ import { parseLogContent } from "./run-parser";
 import { extractCategoryFromRunId, extractTimestampFromRunId } from "./utils";
 
 export function getProjectRoot(): string {
-  const envRoot = process.env.PROJECT_ROOT;
-  if (envRoot) {
-    return path.resolve(process.cwd(), envRoot);
-  }
-  // Default: parent directory of web/
+    const envRoot = process.env.PROJECT_ROOT;
+    if (envRoot) {
+          return path.resolve(process.cwd(), envRoot);
+    }
+    // Default: parent directory of web/
   return path.resolve(process.cwd(), "..");
 }
 
 export function getRunsDir(): string {
-  return path.join(getProjectRoot(), "runs");
+    return path.join(getProjectRoot(), "runs");
 }
 
 export function getRunDir(runId: string): string {
-  return path.join(getRunsDir(), runId);
+    return path.join(getRunsDir(), runId);
 }
 
 export function getOrchestratorPath(): string {
-  return path.join(getProjectRoot(), "orchestrator.sh");
+    return path.join(getProjectRoot(), "orchestrator.sh");
 }
 
 export function getLearningsPath(): string {
-  return path.join(getProjectRoot(), "learnings.json");
+    return path.join(getProjectRoot(), "learnings.json");
 }
 
 function readFileSafe(filePath: string): string {
-  try {
-    return fs.readFileSync(filePath, "utf-8");
-  } catch {
-    return "";
-  }
+    try {
+          return fs.readFileSync(filePath, "utf-8");
+    } catch {
+          return "";
+    }
 }
 
 function fileExists(filePath: string): boolean {
-  try {
-    return fs.existsSync(filePath);
-  } catch {
-    return false;
-  }
+    try {
+          return fs.existsSync(filePath);
+    } catch {
+          return false;
+    }
 }
 
 function readWebMeta(runDir: string): WebRunMeta | null {
-  const metaPath = path.join(runDir, "web-run-meta.json");
-  try {
-    const content = fs.readFileSync(metaPath, "utf-8");
-    return JSON.parse(content) as WebRunMeta;
-  } catch {
-    return null;
-  }
+    const metaPath = path.join(runDir, "web-run-meta.json");
+    try {
+          const content = fs.readFileSync(metaPath, "utf-8");
+          return JSON.parse(content) as WebRunMeta;
+    } catch {
+          return null;
+    }
+}
+
+interface DeployInfo {
+    deployStatus?: "not_started" | "deploying" | "deployed" | "failed";
+    deployUrl?: string;
+    githubRepoUrl?: string;
+}
+
+/**
+ * Read deploy/deploy-result.json (written by deploy and run endpoints) and
+ * derive a normalized DeployInfo for the run. Used by listRuns() and getRunDetail()
+ * so the UI can display "Canli Site" / "Uygulamayi Calistir" buttons consistently
+ * for ALL runs (existing and future), regardless of which deploy target was used.
+ */
+function readDeployInfo(runDir: string): DeployInfo {
+    const resultPath = path.join(runDir, "deploy", "deploy-result.json");
+    if (!fs.existsSync(resultPath)) return {};
+    try {
+          const data = JSON.parse(fs.readFileSync(resultPath, "utf-8")) as Record<string, unknown>;
+          const url =
+                  (data.deploymentUrl as string | undefined) ||
+                  (data.url as string | undefined) ||
+                  (data.deployUrl as string | undefined);
+          const githubRepoUrl = data.githubRepoUrl as string | undefined;
+          const success = data.success === true;
+          let deployUrl = url;
+          if (deployUrl && !/^https?:\/\//i.test(deployUrl)) {
+                  deployUrl = `https://${deployUrl}`;
+          }
+          return {
+                  deployStatus: success && deployUrl ? "deployed" : url ? "failed" : "failed",
+                  deployUrl,
+                  githubRepoUrl,
+          };
+    } catch {
+          return {};
+    }
 }
 
 export function getRunStatus(runId: string, logContent: string, webMeta: WebRunMeta | null, activeRunId: string | string[] | null): RunStatus {
-  // If it's one of the currently active runs
+    // If it's one of the currently active runs
   if (activeRunId) {
-    const activeIds = Array.isArray(activeRunId) ? activeRunId : [activeRunId];
-    if (activeIds.includes(runId)) return "running";
+        const activeIds = Array.isArray(activeRunId) ? activeRunId : [activeRunId];
+        if (activeIds.includes(runId)) return "running";
   }
 
   // If web meta says it's running, check if process is still alive
   if (webMeta?.status === "running" && webMeta.pid) {
-    try {
-      process.kill(webMeta.pid, 0); // Signal 0 checks if process exists
-      return "running";
-    } catch {
-      // Process is dead — fall through to log check
-    }
+        try {
+                process.kill(webMeta.pid, 0); // Signal 0 checks if process exists
+          return "running";
+        } catch {
+                // Process is dead - fall through to log check
+        }
   }
 
-  // ALWAYS check log first — log is the source of truth for completed pipelines.
+  // ALWAYS check log first - log is the source of truth for completed pipelines.
   // webMeta might say "stopped" or "failed" due to orphan detection or non-zero exit,
   // but if the pipeline log shows completion, that takes priority.
   const parsed = parseLogContent(logContent);
 
   if (parsed.isComplete) {
-    // buildSuccess can be: true, false, or undefined
-    // undefined = log has no explicit "Build Durumu: BAŞARILI/BAŞARISIZ" marker
-    // If pipeline completed (PIPELINE TAMAMLANDI found) without explicit failure → completed
-    if (parsed.buildSuccess === false) {
-      return "failed";
-    }
-    return "completed";
-  }
-
-  // Also check build-status.txt as fallback (pipeline may not have logged "PIPELINE TAMAMLANDI"
-  // but the build itself succeeded)
-  if (logContent.trim().length > 0) {
-    const runDir = getRunDir(runId);
-    try {
-      const buildStatusPath = path.join(runDir, "build-status.txt");
-      if (fs.existsSync(buildStatusPath)) {
-        const buildStatus = fs.readFileSync(buildStatusPath, "utf-8").trim();
-        if (buildStatus === "BUILD_SUCCESS") {
-          return "completed";
+        if (parsed.buildSuccess === false) {
+                return "failed";
         }
-      }
-    } catch {
-      // ignore
-    }
+        return "completed";
   }
 
-  // If webMeta says stopped/failed and pipeline didn't complete
-  if (webMeta?.status === "stopped" || webMeta?.status === "failed") {
-    return "stopped";
-  }
-
-  // If there's log content but pipeline isn't complete and not running
+  // Also check build-status.txt as fallback
   if (logContent.trim().length > 0) {
-    return "stopped";
+        const runDir = getRunDir(runId);
+        try {
+                const buildStatusPath = path.join(runDir, "build-status.txt");
+                if (fs.existsSync(buildStatusPath)) {
+                          const buildStatus = fs.readFileSync(buildStatusPath, "utf-8").trim();
+                          if (buildStatus === "BUILD_SUCCESS") {
+                                      return "completed";
+                          }
+                }
+        } catch {
+                // ignore
+        }
+  }
+
+  if (webMeta?.status === "stopped" || webMeta?.status === "failed") {
+        return "stopped";
+  }
+
+  if (logContent.trim().length > 0) {
+        return "stopped";
   }
 
   return "queued";
 }
 
 export function listRuns(activeRunId: string | string[] | null): PipelineRun[] {
-  const runsDir = getRunsDir();
+    const runsDir = getRunsDir();
 
   if (!fs.existsSync(runsDir)) {
-    return [];
+        return [];
   }
 
   const entries = fs.readdirSync(runsDir, { withFileTypes: true })
-    .filter((e) => e.isDirectory() && !e.name.startsWith("."))
-    .sort((a, b) => b.name.localeCompare(a.name)); // newest first
+      .filter((e) => e.isDirectory() && !e.name.startsWith("."))
+      .sort((a, b) => b.name.localeCompare(a.name)); // newest first
 
   return entries.map((entry) => {
-    const runDir = path.join(runsDir, entry.name);
-    const logPath = path.join(runDir, "pipeline.log");
-    const logContent = readFileSafe(logPath);
-    const webMeta = readWebMeta(runDir);
-    const parsed = parseLogContent(logContent);
-    const status = getRunStatus(entry.name, logContent, webMeta, activeRunId);
+        const runDir = path.join(runsDir, entry.name);
+        const logPath = path.join(runDir, "pipeline.log");
+        const logContent = readFileSafe(logPath);
+        const webMeta = readWebMeta(runDir);
+        const parsed = parseLogContent(logContent);
+        const status = getRunStatus(entry.name, logContent, webMeta, activeRunId);
+        const deployInfo = readDeployInfo(runDir);
 
-    // Try to extract app name from product-spec.md
-    let appName: string | undefined;
-    const specPath = path.join(runDir, "product-spec.md");
-    if (fileExists(specPath)) {
-      const specContent = readFileSafe(specPath);
-      const titleMatch = specContent.match(/^#\s+(.+)/m);
-      if (titleMatch) {
-        appName = titleMatch[1].trim();
-      }
-    }
+                         // Try to extract app name from product-spec.md
+                         let appName: string | undefined;
+        const specPath = path.join(runDir, "product-spec.md");
+        if (fileExists(specPath)) {
+                const specContent = readFileSafe(specPath);
+                const titleMatch = specContent.match(/^#\s+(.+)/m);
+                if (titleMatch) {
+                          appName = titleMatch[1].trim();
+                }
+        }
 
-    const run: PipelineRun = {
-      id: entry.name,
-      category: extractCategoryFromRunId(entry.name),
-      timestamp: extractTimestampFromRunId(entry.name),
-      startedAt: parsed.startedAt || webMeta?.startedAt || "",
-      completedAt: parsed.completedAt || webMeta?.completedAt,
-      status,
-      buildSuccess: parsed.buildSuccess,
-      currentStep: parsed.currentStep,
-      steps: parsed.steps,
-      totalCostUsd: parsed.totalCostUsd,
-      workspace: runDir,
-      hasProductSpec: fileExists(specPath),
-      hasReviewReport: fileExists(path.join(runDir, "review-report.md")),
-      appName,
-    };
+                         const run: PipelineRun = {
+                                 id: entry.name,
+                                 category: extractCategoryFromRunId(entry.name),
+                                 timestamp: extractTimestampFromRunId(entry.name),
+                                 startedAt: parsed.startedAt || webMeta?.startedAt || "",
+                                 completedAt: parsed.completedAt || webMeta?.completedAt,
+                                 status,
+                                 buildSuccess: parsed.buildSuccess,
+                                 currentStep: parsed.currentStep,
+                                 steps: parsed.steps,
+                                 totalCostUsd: parsed.totalCostUsd,
+                                 workspace: runDir,
+                                 hasProductSpec: fileExists(specPath),
+                                 hasReviewReport: fileExists(path.join(runDir, "review-report.md")),
+                                 appName,
+                                 deployStatus: deployInfo.deployStatus,
+                                 deployUrl: deployInfo.deployUrl,
+                                 githubRepoUrl: deployInfo.githubRepoUrl,
+                         };
 
-    return run;
+                         return run;
   });
 }
 
 export function getRunDetail(runId: string, activeRunId: string | string[] | null): PipelineRun | null {
-  const runDir = getRunDir(runId);
-  if (!fs.existsSync(runDir)) return null;
+    const runDir = getRunDir(runId);
+    if (!fs.existsSync(runDir)) return null;
 
   const runs = listRuns(activeRunId);
-  return runs.find((r) => r.id === runId) || null;
+    return runs.find((r) => r.id === runId) || null;
 }
 
 export function listArtifacts(runId: string): RunArtifact[] {
-  const runDir = getRunDir(runId);
-  if (!fs.existsSync(runDir)) return [];
+    const runDir = getRunDir(runId);
+    if (!fs.existsSync(runDir)) return [];
 
   const artifacts: RunArtifact[] = [];
 
   function scan(dir: string, relativeTo: string) {
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    for (const entry of entries) {
-      const fullPath = path.join(dir, entry.name);
-      const relPath = path.relative(relativeTo, fullPath);
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+                const fullPath = path.join(dir, entry.name);
+                const relPath = path.relative(relativeTo, fullPath);
 
-      if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
+          if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
 
-      if (entry.isDirectory()) {
-        artifacts.push({
-          path: relPath,
-          name: entry.name,
-          type: "directory",
-        });
-        scan(fullPath, relativeTo);
-      } else {
-        const stat = fs.statSync(fullPath);
-        artifacts.push({
-          path: relPath,
-          name: entry.name,
-          type: "file",
-          size: stat.size,
-          extension: path.extname(entry.name).toLowerCase(),
-        });
-      }
-    }
+          if (entry.isDirectory()) {
+                    artifacts.push({
+                                path: relPath,
+                                name: entry.name,
+                                type: "directory",
+                    });
+                    scan(fullPath, relativeTo);
+          } else {
+                    const stat = fs.statSync(fullPath);
+                    artifacts.push({
+                                path: relPath,
+                                name: entry.name,
+                                type: "file",
+                                size: stat.size,
+                                extension: path.extname(entry.name).toLowerCase(),
+                    });
+          }
+        }
   }
 
   scan(runDir, runDir);
-  return artifacts;
+    return artifacts;
 }
 
 export function readLearnings(): Record<string, unknown> {
-  const learningsPath = getLearningsPath();
-  try {
-    const content = fs.readFileSync(learningsPath, "utf-8");
-    return JSON.parse(content);
-  } catch {
-    return {};
-  }
+    const learningsPath = getLearningsPath();
+    try {
+          const content = fs.readFileSync(learningsPath, "utf-8");
+          return JSON.parse(content);
+    } catch {
+          return {};
+    }
 }
