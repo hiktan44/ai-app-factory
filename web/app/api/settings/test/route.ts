@@ -12,7 +12,7 @@ function resolveKey(clientValue: string | undefined, settingsKey: string): strin
     return clientValue;
   }
   const stored = readSettings();
-  return (stored as Record<string, unknown>)[settingsKey] as string || "";
+  return (stored as any)[settingsKey] as string || "";
 }
 
 export async function POST(request: Request) {
