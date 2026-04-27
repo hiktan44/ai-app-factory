@@ -17,6 +17,8 @@ RUN corepack enable
 COPY --from=deps /app/node_modules ./node_modules
 COPY web/ .
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV HOSTNAME="0.0.0.0"
+ENV NEXT_PRIVATE_LOCAL_IP="0.0.0.0"
 RUN pnpm run build
 
 # Stage 3: Production runner

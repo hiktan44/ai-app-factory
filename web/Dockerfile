@@ -19,6 +19,8 @@ COPY web/ .
 
 # Build-time env vars (non-secret defaults)
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV HOSTNAME="0.0.0.0"
+ENV NEXT_PRIVATE_LOCAL_IP="0.0.0.0"
 
 RUN pnpm run build
 
