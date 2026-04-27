@@ -8,7 +8,7 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 RUN corepack enable
 COPY web/package.json web/pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN NODE_ENV=development pnpm install --frozen-lockfile
 
 # Stage 2: Build
 FROM node:20-alpine AS builder
@@ -29,6 +29,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
 # Runtime tools (orchestrator.sh needs bash, jq, curl, gosu, bc)
 RUN apk add --no-cache bash jq curl git gosu bc
