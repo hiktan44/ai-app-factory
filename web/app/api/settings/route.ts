@@ -8,7 +8,7 @@ export async function GET() {
   // Return masked values
   return NextResponse.json({
     anthropicApiKey: maskValue(settings.anthropicApiKey || ""),
-    geminiApiKey: maskValue(settings.geminiApiKey || ""),
+    zaiApiKey: maskValue(settings.zaiApiKey || ""),
     grokApiKey: maskValue(settings.grokApiKey || ""),
     qwenApiKey: maskValue(settings.qwenApiKey || ""),
     minimaxApiKey: maskValue(settings.minimaxApiKey || ""),

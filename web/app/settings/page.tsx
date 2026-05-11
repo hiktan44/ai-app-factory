@@ -8,7 +8,7 @@ interface SettingsForm {
   // LLM Keys
   claudeOauthToken: string;
   anthropicApiKey: string;
-  geminiApiKey: string;
+  zaiApiKey: string;
   grokApiKey: string;
   qwenApiKey: string;
   minimaxApiKey: string;
@@ -35,7 +35,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<SettingsForm>({
     claudeOauthToken: "",
     anthropicApiKey: "",
-    geminiApiKey: "",
+    zaiApiKey: "",
     grokApiKey: "",
     qwenApiKey: "",
     minimaxApiKey: "",
@@ -147,7 +147,7 @@ export default function SettingsPage() {
         <h3 className="font-semibold text-content mb-2">🧠 Akıllı LLM Yönlendirme</h3>
         <div className="text-xs text-content-secondary space-y-1">
           <p><span className="text-brand font-medium">Claude</span> → Mimari tasarım, kod yazma, hata düzeltme (kritik adımlar)</p>
-          <p><span className="text-blue-400 font-medium">Gemini Flash</span> → Fikir araştırma, GitHub/HuggingFace analizi, assets (ücretsiz)</p>
+          <p><span className="text-blue-400 font-medium">Z.AI (GLM)</span> → Fikir araştırma, kod üretme, analiz, assets</p>
           <p><span className="text-orange-400 font-medium">Grok</span> → Trend araştırma, gerçek zamanlı web bilgisi</p>
           <p><span className="text-green-400 font-medium">Qwen/MiniMax</span> → Marketing metni, çok dilli içerik (ucuz)</p>
           <p><span className="text-purple-400 font-medium">OpenRouter</span> → Açık kaynak modeller (ücretsiz seçenekler)</p>
@@ -188,18 +188,18 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        {/* Gemini */}
+        {/* Z.AI */}
         <Card className="p-6 animate-fade-in mb-4">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-xl">✨</div>
             <div>
-              <h3 className="font-semibold text-content">Gemini Flash (Google) <span className="text-xs text-success ml-1">Ücretsiz</span></h3>
-              <p className="text-xs text-content-muted">Araştırma, analiz, asset üretimi</p>
+              <h3 className="font-semibold text-content">Z.AI (GLM-5.1) <span className="text-xs text-blue-400 ml-1">Kod + Araştırma</span></h3>
+              <p className="text-xs text-content-muted">Kod üretme, araştırma, analiz, asset üretimi</p>
             </div>
           </div>
           <div className="space-y-3">
-            <input type="password" value={settings.geminiApiKey} onChange={update("geminiApiKey")} placeholder="AIza..." className={inputClass} />
-            <TestBtn service="gemini" keyField="geminiApiKey" />
+            <input type="password" value={settings.zaiApiKey} onChange={update("zaiApiKey")} placeholder="Z.AI API key..." className={inputClass} />
+            <TestBtn service="zai" keyField="zaiApiKey" />
           </div>
         </Card>
 

@@ -43,14 +43,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: `Claude API hatası: ${err?.error?.message || res.status}` });
     }
 
-    if (service === "gemini") {
-      const apiKey = resolveKey(settings.geminiApiKey, "geminiApiKey");
+    if (service === "zai") {
+      const apiKey = resolveKey(settings.zaiApiKey, "zaiApiKey");
       if (!apiKey) {
         return NextResponse.json({ success: false, message: "Geçerli bir API key girin" });
       }
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-      if (res.ok) return NextResponse.json({ success: true, message: "✅ Gemini API bağlantısı başarılı!" });
-      return NextResponse.json({ success: false, message: `Gemini API hatası: ${res.status}` });
+      const res = await fetch("https://api.z.ai/api/coding/paas/v4/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "glm-5.1",
+          max_tokens: 5,
+          messages: [{ role: "user", content: "hi" }],
+        }),
+      });
+      if (res.ok) return NextResponse.json({ success: true, message: "✅ Z.AI API bağlantısı başarılı!" });
+      return NextResponse.json({ success: false, message: `Z.AI API hatası: ${res.status}` });
     }
 
     if (service === "grok") {

@@ -108,7 +108,7 @@ export interface IdeaSession {
 }
 
 export interface SettingsData {
-  geminiApiKey?: string;
+  zaiApiKey?: string;
   githubToken?: string;
   githubOrg?: string;
   coolifyApiUrl?: string;

@@ -45,7 +45,7 @@ EXISTING_VERCEL_TOKEN=""
 EXISTING_VERCEL_TEAM_ID=""
 EXISTING_GITHUB_ORG=""
 EXISTING_ANTHROPIC_KEY=""
-EXISTING_GEMINI_KEY=""
+EXISTING_ZAI_KEY=""
 EXISTING_GROK_KEY=""
 EXISTING_OPENROUTER_KEY=""
 EXISTING_QWEN_KEY=""
@@ -58,7 +58,7 @@ if [ -f /factory/settings.json ]; then
   EXISTING_VERCEL_TEAM_ID=$(jq -r '.vercelTeamId // ""' /factory/settings.json 2>/dev/null || echo "")
   EXISTING_GITHUB_ORG=$(jq -r '.githubOrg // ""' /factory/settings.json 2>/dev/null || echo "")
   EXISTING_ANTHROPIC_KEY=$(jq -r '.anthropicApiKey // ""' /factory/settings.json 2>/dev/null || echo "")
-  EXISTING_GEMINI_KEY=$(jq -r '.geminiApiKey // ""' /factory/settings.json 2>/dev/null || echo "")
+  EXISTING_ZAI_KEY=$(jq -r '.zaiApiKey // ""' /factory/settings.json 2>/dev/null || echo "")
   EXISTING_GROK_KEY=$(jq -r '.grokApiKey // ""' /factory/settings.json 2>/dev/null || echo "")
   EXISTING_OPENROUTER_KEY=$(jq -r '.openrouterApiKey // ""' /factory/settings.json 2>/dev/null || echo "")
   EXISTING_QWEN_KEY=$(jq -r '.qwenApiKey // ""' /factory/settings.json 2>/dev/null || echo "")
@@ -81,7 +81,7 @@ if is_valid_key "${VERCEL_TOKEN:-}"; then FINAL_VERCEL_TOKEN="$VERCEL_TOKEN"; el
 if is_valid_key "${VERCEL_TEAM_ID:-}"; then FINAL_VERCEL_TEAM_ID="$VERCEL_TEAM_ID"; else FINAL_VERCEL_TEAM_ID="$EXISTING_VERCEL_TEAM_ID"; fi
 FINAL_GITHUB_ORG="${GITHUB_ORG:-$EXISTING_GITHUB_ORG}"
 if is_valid_key "${ANTHROPIC_API_KEY:-}"; then FINAL_ANTHROPIC_KEY="$ANTHROPIC_API_KEY"; else FINAL_ANTHROPIC_KEY="$EXISTING_ANTHROPIC_KEY"; fi
-if is_valid_key "${GEMINI_API_KEY:-}"; then FINAL_GEMINI_KEY="$GEMINI_API_KEY"; else FINAL_GEMINI_KEY="$EXISTING_GEMINI_KEY"; fi
+if is_valid_key "${ZAI_API_KEY:-}"; then FINAL_ZAI_KEY="$ZAI_API_KEY"; else FINAL_ZAI_KEY="$EXISTING_ZAI_KEY"; fi
 if is_valid_key "${GROK_API_KEY:-}"; then FINAL_GROK_KEY="$GROK_API_KEY"; else FINAL_GROK_KEY="$EXISTING_GROK_KEY"; fi
 if is_valid_key "${OPENROUTER_API_KEY:-}"; then FINAL_OPENROUTER_KEY="$OPENROUTER_API_KEY"; else FINAL_OPENROUTER_KEY="$EXISTING_OPENROUTER_KEY"; fi
 if is_valid_key "${QWEN_API_KEY:-}"; then FINAL_QWEN_KEY="$QWEN_API_KEY"; else FINAL_QWEN_KEY="$EXISTING_QWEN_KEY"; fi
@@ -92,7 +92,7 @@ cat > /factory/settings.json <<ENDJSON
 {
   "claudeOauthToken": "${FINAL_CLAUDE_OAUTH}",
   "anthropicApiKey": "${FINAL_ANTHROPIC_KEY}",
-  "geminiApiKey": "${FINAL_GEMINI_KEY}",
+  "zaiApiKey": "${FINAL_ZAI_KEY}",
   "grokApiKey": "${FINAL_GROK_KEY}",
   "qwenApiKey": "${FINAL_QWEN_KEY}",
   "minimaxApiKey": "${FINAL_MINIMAX_KEY}",

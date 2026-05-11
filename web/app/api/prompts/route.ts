@@ -19,16 +19,16 @@ const PROMPT_NAMES = [
 ];
 
 const PROMPT_LABELS: Record<string, { label: string; description: string; llm: string }> = {
-  discover: { label: "1. Keşif & Fikir", description: "Pazar araştırması ve fikir üretimi", llm: "Gemini/Grok" },
-  architecture: { label: "2. Mimari Tasarım", description: "Uygulama mimarisi ve teknik spec", llm: "Claude" },
-  build: { label: "3. Kod Yazma", description: "Uygulama kodunun üretimi", llm: "Claude" },
-  verify_fix: { label: "4. Doğrulama & Düzeltme", description: "Build hataları ve düzeltmeler", llm: "Claude" },
-  review: { label: "5. Kod Review", description: "Kalite kontrolü ve iyileştirme", llm: "Gemini" },
-  assets: { label: "6. Asset Üretimi", description: "SVG ikonlar ve görseller", llm: "Gemini" },
-  marketing: { label: "7. Marketing", description: "EN/TR pazarlama metinleri", llm: "Qwen/Gemini" },
-  screenshots: { label: "8. Ekran Görüntüleri", description: "UI screenshot üretimi", llm: "Gemini" },
-  package: { label: "9. Paketleme", description: "Docker ve deploy konfigürasyonu", llm: "Gemini" },
-  update_learnings: { label: "10. Öğrenme Güncelleme", description: "learnings.json güncelleme", llm: "Gemini" },
+  discover: { label: "1. Keşif & Fikir", description: "Pazar araştırması ve fikir üretimi", llm: "Z.AI/Grok" },
+  architecture: { label: "2. Mimari Tasarım", description: "Uygulama mimarisi ve teknik spec", llm: "Z.AI" },
+  build: { label: "3. Kod Yazma", description: "Uygulama kodunun üretimi", llm: "Z.AI" },
+  verify_fix: { label: "4. Doğrulama & Düzeltme", description: "Build hataları ve düzeltmeler", llm: "Z.AI" },
+  review: { label: "5. Kod Review", description: "Kalite kontrolü ve iyileştirme", llm: "Z.AI" },
+  assets: { label: "6. Asset Üretimi", description: "SVG ikonlar ve görseller", llm: "Z.AI" },
+  marketing: { label: "7. Marketing", description: "EN/TR pazarlama metinleri", llm: "Z.AI/Qwen" },
+  screenshots: { label: "8. Ekran Görüntüleri", description: "UI screenshot üretimi", llm: "Z.AI" },
+  package: { label: "9. Paketleme", description: "Docker ve deploy konfigürasyonu", llm: "Z.AI" },
+  update_learnings: { label: "10. Öğrenme Güncelleme", description: "learnings.json güncelleme", llm: "Z.AI" },
 };
 
 function getPromptsDir(): string {

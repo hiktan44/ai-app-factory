@@ -5,7 +5,7 @@
  * Araştırma, analiz ve basit görevler için ücretsiz/ucuz modeller kullanılır.
  */
 
-export type LLMProvider = "claude" | "gemini" | "grok" | "qwen" | "minimax" | "openrouter";
+export type LLMProvider = "claude" | "zai" | "grok" | "qwen" | "minimax" | "openrouter";
 
 export interface LLMConfig {
   provider: LLMProvider;
@@ -30,15 +30,15 @@ export const LLM_CONFIGS: Record<LLMProvider, LLMConfig> = {
     costTier: "expensive",
     capabilities: ["code", "creative", "reasoning", "architecture"],
   },
-  gemini: {
-    provider: "gemini",
-    model: "gemini-3-flash-preview",
-    apiKeyEnvVar: "GEMINI_API_KEY",
-    settingsKey: "geminiApiKey",
-    label: "Gemini 3 Flash (Google)",
-    description: "Hızlı ve ücretsiz - araştırma ve analiz için",
-    costTier: "free",
-    capabilities: ["research", "analysis", "web-search", "text"],
+  zai: {
+    provider: "zai",
+    model: "glm-5.1",
+    apiKeyEnvVar: "ZAI_API_KEY",
+    settingsKey: "zaiApiKey",
+    label: "Z.AI (GLM)",
+    description: "Hızlı ve güçlü - araştırma ve analiz için",
+    costTier: "cheap",
+    capabilities: ["research", "analysis", "code", "text"],
     maxTokens: 8192,
   },
   grok: {
@@ -92,28 +92,28 @@ export const LLM_CONFIGS: Record<LLMProvider, LLMConfig> = {
  * Claude sadece kritik adımlarda kullanılır
  */
 export type PipelineStep =
-  | "discover"      // Fikir araştırma → Gemini (ücretsiz web araştırma)
+  | "discover"      // Fikir araştırma → Z.AI (araştırma)
   | "architecture"  // Mimari tasarım → Claude (kritik karar)
   | "build"         // Kod yazma → Claude (en iyi kod kalitesi)
   | "verify_fix"    // Hata düzeltme → Claude (kod anlama gerekli)
-  | "review"        // Kod review → Claude veya Gemini
-  | "assets"        // SVG/görseller → Gemini veya Claude
-  | "marketing"     // Marketing metni → Qwen/Gemini (ucuz metin)
+  | "review"        // Kod review → Claude veya Z.AI
+  | "assets"        // SVG/görseller → Z.AI veya Claude
+  | "marketing"     // Marketing metni → Qwen/Z.AI (ucuz metin)
   | "screenshots"   // Ekran görüntüsü → basit betik
-  | "package"       // Deploy config → Gemini (template doldurma)
-  | "update_learnings"; // Öğrenme güncelleme → Gemini
+  | "package"       // Deploy config → Z.AI (template doldurma)
+  | "update_learnings"; // Öğrenme güncelleme → Z.AI
 
 export const STEP_PROVIDER_MAP: Record<PipelineStep, LLMProvider[]> = {
-  discover: ["openrouter", "grok", "gemini", "claude"],       // OpenRouter öncelikli
-  architecture: ["claude", "openrouter", "gemini"],            // Önce Claude (kritik)
-  build: ["claude", "openrouter", "gemini"],                   // Sadece Claude kaliteli kod yazar
-  verify_fix: ["claude", "openrouter", "gemini"],              // Claude en iyi hata düzeltici
-  review: ["openrouter", "claude", "gemini"],                  // OpenRouter yeterli review yapabilir
-  assets: ["openrouter", "claude", "gemini"],                  // OpenRouter SVG üretebilir
-  marketing: ["qwen", "openrouter", "minimax", "claude"],      // En ucuz metin modeli
-  screenshots: ["openrouter", "claude", "gemini"],             // OpenRouter yeterli
-  package: ["openrouter", "claude", "gemini"],                 // Template doldurma
-  update_learnings: ["openrouter", "gemini", "claude"],        // JSON güncelleme
+  discover: ["zai", "openrouter", "grok", "claude"],
+  architecture: ["zai", "claude", "openrouter"],
+  build: ["zai", "claude", "openrouter"],
+  verify_fix: ["zai", "claude", "openrouter"],
+  review: ["zai", "openrouter", "claude"],
+  assets: ["zai", "openrouter", "claude"],
+  marketing: ["zai", "qwen", "openrouter", "claude"],
+  screenshots: ["zai", "openrouter", "claude"],
+  package: ["zai", "openrouter", "claude"],
+  update_learnings: ["zai", "openrouter", "claude"],
 };
 
 /**
@@ -148,8 +148,8 @@ export async function callLLM(
   switch (provider) {
     case "claude":
       return callClaude(apiKey, systemPrompt, userPrompt, maxTokens);
-    case "gemini":
-      return callGemini(apiKey, systemPrompt, userPrompt, maxTokens);
+    case "zai":
+      return callZai(apiKey, systemPrompt, userPrompt, maxTokens);
     case "grok":
       return callGrok(apiKey, systemPrompt, userPrompt, maxTokens);
     case "qwen":
@@ -172,7 +172,7 @@ async function callClaude(apiKey: string, systemPrompt: string, userPrompt: stri
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "claude-haiku-4-5", // Cost optimization: haiku instead of opus
+      model: "claude-haiku-4-5",
       max_tokens: maxTokens,
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
@@ -188,27 +188,30 @@ async function callClaude(apiKey: string, systemPrompt: string, userPrompt: stri
   return data.content[0]?.text || "";
 }
 
-async function callGemini(apiKey: string, systemPrompt: string, userPrompt: string, maxTokens: number): Promise<string> {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ parts: [{ text: userPrompt }] }],
-        generationConfig: { maxOutputTokens: maxTokens },
-      }),
-    }
-  );
+async function callZai(apiKey: string, systemPrompt: string, userPrompt: string, maxTokens: number): Promise<string> {
+  const res = await fetch("https://api.z.ai/api/coding/paas/v4/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "glm-5.1",
+      max_tokens: maxTokens,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+    }),
+  });
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Gemini API hatası: ${res.status} - ${err}`);
+    throw new Error(`Z.AI API hatası: ${res.status} - ${err}`);
   }
 
-  const data = await res.json() as { candidates: Array<{ content: { parts: Array<{ text: string }> } }> };
-  return data.candidates[0]?.content?.parts[0]?.text || "";
+  const data = await res.json() as { choices: Array<{ message: { content: string } }> };
+  return data.choices[0]?.message?.content || "";
 }
 
 async function callGrok(apiKey: string, systemPrompt: string, userPrompt: string, maxTokens: number): Promise<string> {

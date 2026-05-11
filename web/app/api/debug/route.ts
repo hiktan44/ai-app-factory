@@ -22,7 +22,7 @@ export async function GET() {
       ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY
         ? process.env.ANTHROPIC_API_KEY.slice(0, 12) + "..."
         : "NOT SET",
-      GEMINI_API_KEY: process.env.GEMINI_API_KEY ? "SET" : "NOT SET",
+      ZAI_API_KEY: process.env.ZAI_API_KEY ? "SET" : "NOT SET",
     },
   };
 
