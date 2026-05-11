@@ -31,19 +31,19 @@ export function RunHeader({
                         <div className="flex items-center gap-3 mb-1">
                                   <h1 className="text-xl font-bold text-content">
                                     {run.appName || run.id}
-                                  </h1>h1>
+                                  </h1>
                                   <Badge status={run.status} label={getStatusLabel(run.status)} />
-                        </div>div>
+                        </div>
                         <div className="flex items-center gap-4 text-sm text-content-muted">
-                                  <span>{getCategoryLabel(run.category)}</span>span>
-                                  <span>&middot;</span>span>
-                                  <span>{run.startedAt ? formatDate(run.startedAt) : ""}</span>span>
-                                  <span>&middot;</span>span>
-                                  <span>Adim {run.currentStep}/{TOTAL_STEPS}</span>span>
+                                  <span>{getCategoryLabel(run.category)}</span>
                                   <span>&middot;</span>
-                                  <span>{formatCost(run.totalCostUsd)}</span>span>
-                        </div>div>
-                </div>div>
+                                  <span>{run.startedAt ? formatDate(run.startedAt) : ""}</span>
+                                  <span>&middot;</span>
+                                  <span>Adim {run.currentStep}/{TOTAL_STEPS}</span>
+                                  <span>&middot;</span>
+                                  <span>{formatCost(run.totalCostUsd)}</span>
+                        </div>
+                </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   {run.hasProductSpec && (
                       <>
@@ -55,7 +55,7 @@ export function RunHeader({
                                                   }}
                                                 >
                                                 .md
-                                  </Button>Button>
+                                  </Button>
                                   <Button
                                                   variant="ghost"
                                                   size="sm"
@@ -67,8 +67,8 @@ export function RunHeader({
                                                   }}
                                                 >
                                                 .pdf
-                                  </Button>Button>
-                      </>>
+                                  </Button>
+                      </>
                     )}
                   {run.status === "completed" && onRunApp && (
                       <Button
@@ -82,7 +82,7 @@ export function RunHeader({
                                         : run.deployUrl
                                           ? "Uygulamayi Ac"
                                           : "Uygulamayi Calistir"}
-                      </Button>Button>
+                      </Button>
                         )}
                   {run.deployUrl && (
                       <Button
@@ -91,7 +91,7 @@ export function RunHeader({
                                     onClick={() => window.open(run.deployUrl, "_blank")}
                                   >
                                   Canli Site
-                      </Button>Button>
+                      </Button>
                         )}
                   {run.status === "completed" && onDeploy && (
                       <Button
@@ -101,20 +101,19 @@ export function RunHeader({
                                     disabled={isDeploying}
                                   >
                         {isDeploying ? "Deploy..." : run.deployUrl ? "Yeniden Deploy" : "Deploy Et"}
-                      </Button>Button>
+                      </Button>
                         )}
                   {run.status === "running" && onStop && (
                       <Button variant="danger" size="sm" onClick={onStop}>
                                   Durdur
-                      </Button>Button>
+                      </Button>
                         )}
                   {(run.status === "stopped" || run.status === "failed") && onRestart && (
                       <Button variant="primary" size="sm" onClick={onRestart}>
                                   Yeniden Baslat
-                      </Button>Button>
+                      </Button>
                         )}
-                </div>div>
-          </div>div>
+                </div>
+          </div>
         );
 }
-</></div>
