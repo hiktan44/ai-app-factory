@@ -229,7 +229,7 @@ export async function enhanceIdeaWithLLM(
   category: string,
   research: ResearchResult,
   llmApiKey: string,
-  llmProvider: "gemini" | "claude" = "gemini"
+  llmProvider: "zai" | "claude" = "zai"
 ): Promise<EnhancedIdea> {
   const researchContext = buildResearchContext(research);
 
@@ -268,23 +268,26 @@ Yukarıdaki araştırma verilerini kullanarak bu fikri geliştir ve JSON döndü
   try {
     let responseText = "";
 
-    if (llmProvider === "gemini" && llmApiKey) {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${llmApiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            system_instruction: { parts: [{ text: systemPrompt }] },
-            contents: [{ parts: [{ text: userPrompt }] }],
-            generationConfig: { maxOutputTokens: 2048, temperature: 0.7 },
-          }),
-        }
-      );
+    if (llmProvider === "zai" && llmApiKey) {
+      const res = await fetch("https://api.z.ai/api/coding/paas/v4/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${llmApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "glm-5.1",
+          max_tokens: 2048,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+        }),
+      });
 
       if (res.ok) {
-        const data = await res.json() as { candidates: Array<{ content: { parts: Array<{ text: string }> } }> };
-        responseText = data.candidates[0]?.content?.parts[0]?.text || "";
+        const data = await res.json() as { choices: Array<{ message: { content: string } }> };
+        responseText = data.choices[0]?.message?.content || "";
       }
     } else if (llmProvider === "claude" && llmApiKey) {
       const res = await fetch("https://api.anthropic.com/v1/messages", {

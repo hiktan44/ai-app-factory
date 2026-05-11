@@ -2,22 +2,22 @@ import type { IdeaProposal } from "./types";
 import { readSettings } from "./settings";
 
 // ============================================================
-// LLM Provider: OpenRouter (Gemini geçici olarak devre dışı)
-// OpenRouter üzerinden ücretsiz/ucuz modeller kullanılır
+// LLM Provider: Z.AI (GLM-5.1)
+// OpenAI-uyumlu API ile çalışır
 // ============================================================
 
-const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
+const ZAI_BASE_URL = "https://api.z.ai/api/coding/paas/v4/chat/completions";
 
-export type GeminiModelTier = "pro" | "flash";
+export type ZaiModelTier = "pro" | "flash";
 
-const MODELS: Record<GeminiModelTier, { id: string; label: string }> = {
+const MODELS: Record<ZaiModelTier, { id: string; label: string }> = {
   pro: {
-    id: "google/gemini-2.5-flash-preview",
-    label: "Gemini 2.5 Flash (OpenRouter)",
+    id: "glm-5.1",
+    label: "GLM 5.1 (Z.AI)",
   },
   flash: {
-    id: "google/gemini-2.5-flash-preview",
-    label: "Gemini 2.5 Flash (OpenRouter)",
+    id: "glm-5.1",
+    label: "GLM 5.1 (Z.AI)",
   },
 };
 
@@ -29,7 +29,7 @@ type TaskType =
   | "marketing"
   | "general";
 
-const TASK_MODEL_MAP: Record<TaskType, GeminiModelTier> = {
+const TASK_MODEL_MAP: Record<TaskType, ZaiModelTier> = {
   "idea-generation": "flash",
   "product-spec": "pro",
   "architecture": "pro",
@@ -45,12 +45,12 @@ const TASK_MODEL_MAP: Record<TaskType, GeminiModelTier> = {
 function getApiKey(): string {
   try {
     const settings = readSettings();
-    if (settings.openrouterApiKey && !settings.openrouterApiKey.includes("●")) {
-      return settings.openrouterApiKey;
+    if (settings.zaiApiKey && !settings.zaiApiKey.includes("●")) {
+      return settings.zaiApiKey;
     }
   } catch { /* ignore */ }
-  const key = process.env.OPENROUTER_API_KEY;
-  if (!key) throw new Error("OpenRouter API key ayarlanmamış. Lütfen /settings sayfasından ekleyin.");
+  const key = process.env.ZAI_API_KEY;
+  if (!key) throw new Error("Z.AI API key ayarlanmamış. Lütfen /settings sayfasından ekleyin.");
   return key;
 }
 
@@ -59,9 +59,10 @@ function selectModel(task: TaskType): { id: string; label: string } {
   return MODELS[tier];
 }
 
-async function callGemini(opts: {
+async function callZai(opts: {
   task: TaskType;
   prompt: string;
+  systemPrompt?: string;
   temperature?: number;
   topP?: number;
   maxOutputTokens?: number;
@@ -70,19 +71,23 @@ async function callGemini(opts: {
   const apiKey = getApiKey();
   const model = selectModel(opts.task);
 
-  console.log(`[OpenRouter] Model: ${model.label} | Gorev: ${opts.task}`);
+  console.log(`[Z.AI] Model: ${model.label} | Gorev: ${opts.task}`);
 
-  const response = await fetch(OPENROUTER_BASE_URL, {
+  const messages: Array<{ role: string; content: string }> = [];
+  if (opts.systemPrompt) {
+    messages.push({ role: "system", content: opts.systemPrompt });
+  }
+  messages.push({ role: "user", content: opts.prompt });
+
+  const response = await fetch(ZAI_BASE_URL, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": "https://ai-app-factory.com",
-      "X-Title": "AI App Factory",
     },
     body: JSON.stringify({
       model: model.id,
-      messages: [{ role: "user", content: opts.prompt }],
+      messages,
       temperature: opts.temperature ?? 0.7,
       top_p: opts.topP ?? 0.9,
       max_tokens: opts.maxOutputTokens ?? 4096,
@@ -94,8 +99,8 @@ async function callGemini(opts: {
 
   if (!response.ok) {
     const errText = await response.text();
-    console.error(`[OpenRouter] API error (${model.id}):`, errText);
-    throw new Error(`OpenRouter API hatasi (${model.label}): ${response.status}`);
+    console.error(`[Z.AI] API error (${model.id}):`, errText);
+    throw new Error(`Z.AI API hatasi (${model.label}): ${response.status}`);
   }
 
   const data = await response.json() as {
@@ -104,7 +109,7 @@ async function callGemini(opts: {
   const text = data.choices?.[0]?.message?.content;
 
   if (!text) {
-    throw new Error(`OpenRouter API bos cevap dondu (${model.label})`);
+    throw new Error(`Z.AI API bos cevap dondu (${model.label})`);
   }
 
   return text;
@@ -122,7 +127,7 @@ export function getModelInfo(task: TaskType) {
 
 export function getAllModels() {
   return Object.entries(MODELS).map(([tier, model]) => ({
-    tier: tier as GeminiModelTier,
+    tier: tier as ZaiModelTier,
     id: model.id,
     label: model.label,
     tasks: Object.entries(TASK_MODEL_MAP)
@@ -192,7 +197,7 @@ Asagidaki JSON formatinda SADECE JSON olarak cevap ver:
   "uniqueValue": "Ilham alinan urununden ne farki var? Neden kullanicilar bunu secmeli? (1-2 cumle)"
 }`;
 
-  const text = await callGemini({
+  const text = await callZai({
     task: "idea-generation",
     prompt,
     temperature: 0.9,
@@ -241,7 +246,7 @@ Markdown formatinda detayli bir product-spec.md yaz. Icermesi gerekenler:
 
 Turkce yaz ama uygulama adi Ingilizce olabilir. Cok detayli ve gercekci ol.`;
 
-  return callGemini({
+  return callZai({
     task: "product-spec",
     prompt,
     temperature: 0.7,

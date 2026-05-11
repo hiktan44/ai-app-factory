@@ -37,7 +37,7 @@
     "PORT": "3000",
     "NEXT_TELEMETRY_DISABLED": "1",
     "PROJECT_ROOT": "/factory",
-    "GEMINI_API_KEY": "",
+    "ZAI_API_KEY": "",
     "ANTHROPIC_API_KEY": "",
     "GITHUB_TOKEN": "",
     "GITHUB_ORG": "",

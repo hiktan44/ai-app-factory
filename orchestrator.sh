@@ -10,7 +10,7 @@ set -uo pipefail
 #
 # LLM Routing:
 #   Claude     → Mimari tasarım, kod yazma, hata düzeltme (kritik)
-#   Gemini     → Araştırma, review, assets, packaging (ücretsiz)
+#   Z.AI       → Araştırma, kod üretme, review, assets, packaging
 #   Grok       → Trend araştırma (opsiyonel)
 #   Qwen       → Marketing metni (ucuz, çok dilli)
 #
@@ -29,7 +29,7 @@ if [ -f "$SETTINGS_FILE" ]; then
   # settings.json'dan keyler okunur (jq ile)
   CLAUDE_OAUTH_TOKEN_LOCAL=$(jq -r '.claudeOauthToken // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
   ANTHROPIC_API_KEY_LOCAL=$(jq -r '.anthropicApiKey // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
-  GEMINI_API_KEY_LOCAL=$(jq -r '.geminiApiKey // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
+  ZAI_API_KEY_LOCAL=$(jq -r '.zaiApiKey // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
   GROK_API_KEY_LOCAL=$(jq -r '.grokApiKey // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
   QWEN_API_KEY_LOCAL=$(jq -r '.qwenApiKey // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
   OPENROUTER_API_KEY_LOCAL=$(jq -r '.openrouterApiKey // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
@@ -37,7 +37,7 @@ if [ -f "$SETTINGS_FILE" ]; then
   # Eğer settings'te varsa env'i override et (OAuth token öncelikli)
   [ -n "$CLAUDE_OAUTH_TOKEN_LOCAL" ] && export CLAUDE_CODE_OAUTH_TOKEN="$CLAUDE_OAUTH_TOKEN_LOCAL"
   [ -n "$ANTHROPIC_API_KEY_LOCAL" ] && export ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY_LOCAL"
-  [ -n "$GEMINI_API_KEY_LOCAL" ] && export GEMINI_API_KEY="$GEMINI_API_KEY_LOCAL"
+  [ -n "$ZAI_API_KEY_LOCAL" ] && export ZAI_API_KEY="$ZAI_API_KEY_LOCAL"
   [ -n "$GROK_API_KEY_LOCAL" ] && export GROK_API_KEY="$GROK_API_KEY_LOCAL"
   [ -n "$QWEN_API_KEY_LOCAL" ] && export QWEN_API_KEY="$QWEN_API_KEY_LOCAL"
   [ -n "$OPENROUTER_API_KEY_LOCAL" ] && export OPENROUTER_API_KEY="$OPENROUTER_API_KEY_LOCAL"
@@ -50,13 +50,13 @@ if ! command -v claude &> /dev/null; then
   exit 1
 fi
 
-# ─── Gemini API helper ───────────────────────────────────────
-call_gemini() {
+# ─── Z.AI API helper ────────────────────────────────────────
+call_zai() {
   local system_prompt="$1"
   local user_prompt="$2"
   local output_file="$3"
 
-  if [ -z "${GEMINI_API_KEY:-}" ]; then
+  if [ -z "${ZAI_API_KEY:-}" ]; then
     return 1
   fi
 
@@ -65,22 +65,25 @@ call_gemini() {
     --arg sys "$system_prompt" \
     --arg usr "$user_prompt" \
     '{
-      system_instruction: { parts: [{ text: $sys }] },
-      contents: [{ parts: [{ text: $usr }] }],
-      generationConfig: { maxOutputTokens: 8192, temperature: 0.7 }
+      model: "glm-5.1",
+      max_tokens: 8192,
+      messages: [
+        { role: "system", content: $sys },
+        { role: "user", content: $usr }
+      ]
     }')
 
   local response
   response=$(curl -s -X POST \
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=${GEMINI_API_KEY}" \
+    "https://api.z.ai/api/coding/paas/v4/chat/completions" \
+    -H "Authorization: Bearer ${ZAI_API_KEY}" \
     -H "Content-Type: application/json" \
     -d "$payload" 2>/dev/null)
 
   local text
-  text=$(echo "$response" | jq -r '.candidates[0].content.parts[0].text // empty' 2>/dev/null || echo "")
+  text=$(echo "$response" | jq -r '.choices[0].message.content // empty' 2>/dev/null || echo "")
 
   if [ -n "$text" ]; then
-    # Gemini yanıtını Claude-benzeri JSON formatında kaydet
     echo "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":$(echo "$text" | jq -Rs .)}" > "$output_file"
     return 0
   fi
@@ -343,7 +346,7 @@ RUNNER_EOF
 }
 
 # ─── Non-Claude provider çıktısını dosyaya yaz ───────────────
-# Non-Claude provider'lar (Gemini, Qwen, OpenRouter) sadece text döndürür
+# Non-Claude provider'lar (Z.AI, Qwen, OpenRouter) sadece text döndürür
 # ve workspace'e dosya yazmaz. Bu fonksiyon JSON çıktısından text'i
 # çıkarıp beklenen dosyaya yazar.
 extract_and_write() {
@@ -397,7 +400,7 @@ adim_baslik() {
 
 # ─── Akıllı LLM Routing ──────────────────────────────────────
 # preferred_providers: boşlukla ayrılmış öncelik listesi
-# Örnek: "gemini openrouter claude"
+# Örnek: "zai openrouter claude"
 run_step_smart() {
   local adim_adi="$1"
   local prompt_dosyasi="$2"
@@ -432,9 +435,9 @@ run_step_smart() {
     log "Provider deneniyor: ${provider}"
 
     case "$provider" in
-      gemini)
-        if call_gemini "$system_prompt" "$kullanici_promptu" "$json_dosya"; then
-          kullanilan_provider="gemini"
+      zai)
+        if call_zai "$system_prompt" "$kullanici_promptu" "$json_dosya"; then
+          kullanilan_provider="zai"
           break
         fi
         ;;
@@ -470,7 +473,7 @@ run_step_smart() {
   fi
 
   # Minimum süre kontrolü — Claude ile gerçek bir çalışma en az 10 saniye sürer
-  # Gemini/Qwen API çağrıları daha hızlı olabilir (3-5s normal)
+  # Z.AI/Qwen API çağrıları daha hızlı olabilir (3-5s normal)
   local min_sure=5
   if [ "$kullanilan_provider" = "claude" ]; then
     min_sure=10
@@ -531,7 +534,7 @@ log ""
 log "Mevcut API Keyleri:"
 log "  CLAUDE_OAUTH: $([ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && echo 'YÜKLENDİ (Max Plan)' || echo 'YOK')"
 log "  ANTHROPIC: $([ -n "${ANTHROPIC_API_KEY:-}" ] && echo 'YÜKLENDİ' || echo 'YOK')"
-log "  GEMINI:    $([ -n "${GEMINI_API_KEY:-}" ] && echo 'YÜKLENDİ (ücretsiz)' || echo 'YOK')"
+log "  Z.AI:      $([ -n "${ZAI_API_KEY:-}" ] && echo 'YÜKLENDİ' || echo 'YOK')"
 log "  GROK:      $([ -n "${GROK_API_KEY:-}" ] && echo 'YÜKLENDİ' || echo 'YOK')"
 log "  QWEN:      $([ -n "${QWEN_API_KEY:-}" ] && echo 'YÜKLENDİ' || echo 'YOK')"
 log "  OPENROUTER:$([ -n "${OPENROUTER_API_KEY:-}" ] && echo 'YÜKLENDİ' || echo 'YOK')"
@@ -648,7 +651,7 @@ adim_baslik "KEŞİF (Fikir Bul)"
 if [ -f "$PRE_APPROVED" ]; then
   log "Pre-approved ürün spec mevcut, keşif adımı atlanıyor."
 else
-  # Araştırma ajanı: Gemini (web search kabiliyeti), Grok (trend analizi), Claude (derin analiz)
+  # Araştırma ajanı: Z.AI (web search kabiliyeti), Grok (trend analizi), Claude (derin analiz)
   run_step_smart "discover" \
     "${PROMPTS_DIR}/discover.md" \
     "Kategori: ${CATEGORY}
@@ -678,7 +681,7 @@ KALİTE KRİTERLERİ:
 - Gelir projeksiyonu (ilk yıl MRR hedefi)
 
 Önemli: Çıktıyı mutlaka ${WORKSPACE}/product-spec.md dosyasına yaz." \
-    "gemini grok openrouter claude"
+    "zai grok openrouter claude"
 
   # Post-processing: Non-Claude provider product-spec.md yazmaz
   if [ ! -f "${WORKSPACE}/product-spec.md" ] || [ ! -s "${WORKSPACE}/product-spec.md" ]; then
@@ -790,7 +793,7 @@ fi
 
 adim_baslik "KOD İNCELEME (Review)"
 
-# Gemini ile review yeterli — ucuz ve hızlı
+# Z.AI ile review yeterli — ucuz ve hızlı
 run_step_smart "review" \
   "${PROMPTS_DIR}/review.md" \
   "Uygulama dizini: ${WORKSPACE}/app
@@ -803,7 +806,7 @@ Görev:
 4. Review raporunu ${WORKSPACE}/review-report.md dosyasına yaz
 5. KRİTİK sorunları doğrudan kodda düzelt
 6. Düzeltme yaptıysan tekrar 'pnpm run build' çalıştır" \
-  "gemini claude openrouter" || true
+  "zai claude openrouter" || true
 
 # Post-processing: Non-Claude provider review-report.md yazmaz
 if [ ! -f "${WORKSPACE}/review-report.md" ]; then
@@ -815,7 +818,7 @@ fi
 
 adim_baslik "GÖRSEL VARLIKLAR (Assets)"
 
-# Gemini SVG üretebilir
+# Z.AI SVG üretebilir
 run_step_smart "assets" \
   "${PROMPTS_DIR}/assets.md" \
   "Uygulama dizini: ${WORKSPACE}/app
@@ -827,7 +830,7 @@ Görev:
 3. SVG logo, favicon, OG image oluştur
 4. Dosyaları ${WORKSPACE}/app/public/ dizinine yaz
 5. Layout metadata'sını güncelle" \
-  "gemini claude openrouter" || true
+  "zai claude openrouter" || true
 
 # ─── ADIM 7: PAZARLAMA ───────────────────────────────────────
 
@@ -849,7 +852,7 @@ Görev:
    - readme.md
    - changelog.md
 3. Hem İngilizce hem Türkçe versiyonlar oluştur" \
-  "qwen gemini openrouter claude" || true
+  "qwen zai openrouter claude" || true
 
 # Post-processing: Non-Claude provider marketing dosyaları yazmaz
 if [ ! -f "${WORKSPACE}/marketing/landing_page_copy.md" ]; then
@@ -875,7 +878,7 @@ Görev:
 5. Sunucuyu kapat
 
 Hata durumunda: Screenshot adımı opsiyoneldir, hata olursa logla ve devam et." \
-  "gemini claude" || {
+  "zai claude" || {
   log "UYARI: Ekran görüntüsü adımı başarısız (devam ediliyor)"
 }
 
@@ -883,7 +886,7 @@ Hata durumunda: Screenshot adımı opsiyoneldir, hata olursa logla ve devam et."
 
 adim_baslik "PAKETLEME (Package)"
 
-# Gemini template doldurma için yeterli
+# Z.AI template doldurma için yeterli
 run_step_smart "package" \
   "${PROMPTS_DIR}/package.md" \
   "Uygulama dizini: ${WORKSPACE}/app
@@ -906,7 +909,7 @@ Görev:
 - Dockerfile app kök dizinine yerleştirilsin
 - Hiçbir zaman context: ./app veya context: ./video-ads-studio gibi alt dizin kullanma
 - Bu hatalı ayar Coolify'da "path \"/artifacts/xxx\" not found" hatasına sebep olur" \
-  "gemini claude openrouter" || true
+  "zai claude openrouter" || true
 
 # Post-processing: Non-Claude provider deploy dosyaları yazmaz
 if [ ! -f "${WORKSPACE}/deploy/Dockerfile" ] && [ ! -f "${WORKSPACE}/app/Dockerfile" ]; then
@@ -1054,7 +1057,7 @@ fi
 
 adim_baslik "ÖĞRENMELERİ GÜNCELLE (Learnings)"
 
-# Gemini JSON güncellemesi için yeterli
+# Z.AI JSON güncellemesi için yeterli
 run_step_smart "update_learnings" \
   "${PROMPTS_DIR}/update_learnings.md" \
   "Workspace dizini: ${WORKSPACE}
@@ -1069,7 +1072,7 @@ Görev:
 4. ${LEARNINGS_FILE} dosyasını oku
 5. Öğrenilenleri çıkar ve ${LEARNINGS_FILE} dosyasını güncelle
 6. total_runs artır, last_updated güncelle" \
-  "gemini openrouter claude" || true
+  "zai openrouter claude" || true
 
 # Post-processing: Non-Claude provider learnings.json'ı doğrudan güncelleyemez
 if [ -f "${WORKSPACE}/logs/update_learnings.json" ]; then

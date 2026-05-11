@@ -6,7 +6,7 @@ export interface AppSettings {
   // LLM Keys
   claudeOauthToken: string; // Max Plan OAuth token (öncelikli)
   anthropicApiKey: string;
-  geminiApiKey: string;
+  zaiApiKey: string;
   grokApiKey: string;
   qwenApiKey: string;
   minimaxApiKey: string;
@@ -43,7 +43,7 @@ export function readSettings(): AppSettings {
   return {
     claudeOauthToken: "",
     anthropicApiKey: "",
-    geminiApiKey: "",
+    zaiApiKey: "",
     grokApiKey: "",
     qwenApiKey: "",
     minimaxApiKey: "",
