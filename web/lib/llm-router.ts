@@ -104,16 +104,16 @@ export type PipelineStep =
   | "update_learnings"; // Öğrenme güncelleme → Gemini
 
 export const STEP_PROVIDER_MAP: Record<PipelineStep, LLMProvider[]> = {
-  discover: ["gemini", "grok", "openrouter", "claude"],       // Önce Gemini, yoksa sıradaki
-  architecture: ["claude", "gemini", "openrouter"],            // Önce Claude (kritik)
+  discover: ["openrouter", "grok", "gemini", "claude"],       // OpenRouter öncelikli
+  architecture: ["claude", "openrouter", "gemini"],            // Önce Claude (kritik)
   build: ["claude", "openrouter", "gemini"],                   // Sadece Claude kaliteli kod yazar
   verify_fix: ["claude", "openrouter", "gemini"],              // Claude en iyi hata düzeltici
-  review: ["gemini", "claude", "openrouter"],                  // Gemini yeterli review yapabilir
-  assets: ["gemini", "claude", "openrouter"],                  // Gemini SVG üretebilir
-  marketing: ["qwen", "gemini", "minimax", "claude"],          // En ucuz metin modeli
-  screenshots: ["gemini", "claude"],                           // Gemini yeterli
-  package: ["gemini", "claude", "openrouter"],                 // Template doldurma
-  update_learnings: ["gemini", "openrouter", "claude"],        // JSON güncelleme
+  review: ["openrouter", "claude", "gemini"],                  // OpenRouter yeterli review yapabilir
+  assets: ["openrouter", "claude", "gemini"],                  // OpenRouter SVG üretebilir
+  marketing: ["qwen", "openrouter", "minimax", "claude"],      // En ucuz metin modeli
+  screenshots: ["openrouter", "claude", "gemini"],             // OpenRouter yeterli
+  package: ["openrouter", "claude", "gemini"],                 // Template doldurma
+  update_learnings: ["openrouter", "gemini", "claude"],        // JSON güncelleme
 };
 
 /**

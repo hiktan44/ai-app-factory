@@ -672,10 +672,10 @@ function extractSaasOpportunities(
   return opps;
 }
 
-// ─── Gemini ile trend bazlı fikir üretimi ────────────────────────────────────
+// ─── OpenRouter ile trend bazlı fikir üretimi ──────────────────────────────
 
 /**
- * Trend verilerini Gemini'ye göndererek derinlemesine analiz edilmiş fikir üret
+ * Trend verilerini OpenRouter'a göndererek derinlemesine analiz edilmiş fikir üret
  */
 export async function generateIdeaWithTrends(
   category: string,
@@ -684,12 +684,12 @@ export async function generateIdeaWithTrends(
   angle: string
 ): Promise<IdeaWithTrends> {
   const settings = readSettings();
-  const apiKey = (settings.geminiApiKey && !settings.geminiApiKey.includes("●"))
-    ? settings.geminiApiKey
-    : (process.env.GEMINI_API_KEY || "");
+  const apiKey = (settings.openrouterApiKey && !settings.openrouterApiKey.includes("●"))
+    ? settings.openrouterApiKey
+    : (process.env.OPENROUTER_API_KEY || "");
 
   if (!apiKey) {
-    throw new Error("Gemini API key ayarlanmamış. Lütfen /settings sayfasından ekleyin.");
+    throw new Error("OpenRouter API key ayarlanmamış. Lütfen /settings sayfasından ekleyin.");
   }
 
   const trendContext = buildTrendContext(trendData);
@@ -749,40 +749,41 @@ Aşağıdaki JSON formatında SADECE JSON döndür (başka hiçbir şey yazma):
   ]
 }`;
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.9,
-          topP: 0.95,
-          maxOutputTokens: 3000,
-          responseMimeType: "application/json",
-        },
-      }),
-    }
-  );
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "https://ai-app-factory.com",
+      "X-Title": "AI App Factory",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash-preview",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.9,
+      top_p: 0.95,
+      max_tokens: 3000,
+      response_format: { type: "json_object" },
+    }),
+  });
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Gemini API hatası: ${res.status} — ${err.slice(0, 200)}`);
+    throw new Error(`OpenRouter API hatası: ${res.status} — ${err.slice(0, 200)}`);
   }
 
   const data = await res.json() as {
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    choices?: Array<{ message?: { content?: string } }>;
   };
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error("Gemini boş yanıt döndürdü");
+  const text = data.choices?.[0]?.message?.content;
+  if (!text) throw new Error("OpenRouter boş yanıt döndürdü");
 
   try {
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("JSON bulunamadı");
     return JSON.parse(jsonMatch[0]) as IdeaWithTrends;
   } catch {
-    throw new Error("Gemini yanıtı JSON olarak parse edilemedi");
+    throw new Error("OpenRouter yanıtı JSON olarak parse edilemedi");
   }
 }
 

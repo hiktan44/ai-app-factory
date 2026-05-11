@@ -2,46 +2,40 @@ import type { IdeaProposal } from "./types";
 import { readSettings } from "./settings";
 
 // ============================================================
-// Gemini Multi-Model Configuration
-// ============================================================
-// Pro  : Derin analiz, detayli dokuman uretimi, karmasik gorevler
-// Flash: Hizli yaratici fikirler, hafif gorevler, JSON uretimi
+// LLM Provider: OpenRouter (Gemini geçici olarak devre dışı)
+// OpenRouter üzerinden ücretsiz/ucuz modeller kullanılır
 // ============================================================
 
-const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
+const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-/** Mevcut model katmanlari */
 export type GeminiModelTier = "pro" | "flash";
 
-/** Model tanimlari */
 const MODELS: Record<GeminiModelTier, { id: string; label: string }> = {
   pro: {
-    id: "gemini-3.1-pro-preview",
-    label: "Gemini 3.1 Pro Preview",
+    id: "google/gemini-2.5-flash-preview",
+    label: "Gemini 2.5 Flash (OpenRouter)",
   },
   flash: {
-    id: "gemini-3-flash-preview",
-    label: "Gemini 3 Flash Preview",
+    id: "google/gemini-2.5-flash-preview",
+    label: "Gemini 2.5 Flash (OpenRouter)",
   },
 };
 
-/** Gorev tipi -> model eslestirmesi */
 type TaskType =
-  | "idea-generation"       // Fikir uretimi (yaratici, hafif)
-  | "product-spec"          // Urun dokumani (detayli, kritik)
-  | "architecture"          // Mimari tasarim (karmasik)
-  | "code-review"           // Kod inceleme (analitik)
-  | "marketing"             // Pazarlama metni (yaratici, hafif)
-  | "general";              // Genel amacli
+  | "idea-generation"
+  | "product-spec"
+  | "architecture"
+  | "code-review"
+  | "marketing"
+  | "general";
 
-/** Her gorev tipi icin hangi model kullanilacak */
 const TASK_MODEL_MAP: Record<TaskType, GeminiModelTier> = {
-  "idea-generation": "flash",    // Hizli yaratici beyin firtinasi
-  "product-spec": "pro",         // Detayli teknik dokuman — Pro sart
-  "architecture": "pro",         // Mimari kararlar — Pro sart
-  "code-review": "pro",          // Derin kod analizi — Pro sart
-  "marketing": "flash",          // Pazarlama metni — Flash yeterli
-  "general": "flash",            // Genel gorevler — Flash yeterli
+  "idea-generation": "flash",
+  "product-spec": "pro",
+  "architecture": "pro",
+  "code-review": "pro",
+  "marketing": "flash",
+  "general": "flash",
 };
 
 // ============================================================
@@ -49,30 +43,22 @@ const TASK_MODEL_MAP: Record<TaskType, GeminiModelTier> = {
 // ============================================================
 
 function getApiKey(): string {
-  // Önce settings.json'dan oku (ayarlar sayfasından kaydedilen değer)
   try {
     const settings = readSettings();
-    if (settings.geminiApiKey && !settings.geminiApiKey.includes("●")) {
-      return settings.geminiApiKey;
+    if (settings.openrouterApiKey && !settings.openrouterApiKey.includes("●")) {
+      return settings.openrouterApiKey;
     }
   } catch { /* ignore */ }
-  // Fallback: ortam değişkeni
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error("Gemini API key ayarlanmamış. Lütfen /settings sayfasından ekleyin.");
+  const key = process.env.OPENROUTER_API_KEY;
+  if (!key) throw new Error("OpenRouter API key ayarlanmamış. Lütfen /settings sayfasından ekleyin.");
   return key;
 }
 
-/** Gorev tipine gore model sec */
-function selectModel(task: TaskType): { id: string; label: string; url: string } {
+function selectModel(task: TaskType): { id: string; label: string } {
   const tier = TASK_MODEL_MAP[task];
-  const model = MODELS[tier];
-  return {
-    ...model,
-    url: `${GEMINI_BASE_URL}/${model.id}:generateContent`,
-  };
+  return MODELS[tier];
 }
 
-/** Gemini API'ye istek gonder */
 async function callGemini(opts: {
   task: TaskType;
   prompt: string;
@@ -84,33 +70,41 @@ async function callGemini(opts: {
   const apiKey = getApiKey();
   const model = selectModel(opts.task);
 
-  console.log(`[Gemini] Model: ${model.label} | Gorev: ${opts.task}`);
+  console.log(`[OpenRouter] Model: ${model.label} | Gorev: ${opts.task}`);
 
-  const response = await fetch(`${model.url}?key=${apiKey}`, {
+  const response = await fetch(OPENROUTER_BASE_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "https://ai-app-factory.com",
+      "X-Title": "AI App Factory",
+    },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: opts.prompt }] }],
-      generationConfig: {
-        temperature: opts.temperature ?? 0.7,
-        topP: opts.topP ?? 0.9,
-        maxOutputTokens: opts.maxOutputTokens ?? 4096,
-        ...(opts.responseMimeType && { responseMimeType: opts.responseMimeType }),
-      },
+      model: model.id,
+      messages: [{ role: "user", content: opts.prompt }],
+      temperature: opts.temperature ?? 0.7,
+      top_p: opts.topP ?? 0.9,
+      max_tokens: opts.maxOutputTokens ?? 4096,
+      ...(opts.responseMimeType === "application/json" && {
+        response_format: { type: "json_object" },
+      }),
     }),
   });
 
   if (!response.ok) {
     const errText = await response.text();
-    console.error(`[Gemini] API error (${model.id}):`, errText);
-    throw new Error(`Gemini API hatasi (${model.label}): ${response.status}`);
+    console.error(`[OpenRouter] API error (${model.id}):`, errText);
+    throw new Error(`OpenRouter API hatasi (${model.label}): ${response.status}`);
   }
 
-  const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const data = await response.json() as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  const text = data.choices?.[0]?.message?.content;
 
   if (!text) {
-    throw new Error(`Gemini API bos cevap dondu (${model.label})`);
+    throw new Error(`OpenRouter API bos cevap dondu (${model.label})`);
   }
 
   return text;
@@ -120,14 +114,12 @@ async function callGemini(opts: {
 // Public API
 // ============================================================
 
-/** Hangi modelin hangi gorev icin kullanildigini dondurur (UI'da gostermek icin) */
 export function getModelInfo(task: TaskType) {
   const tier = TASK_MODEL_MAP[task];
   const model = MODELS[tier];
   return { tier, model: model.id, label: model.label };
 }
 
-/** Tum model bilgilerini dondurur */
 export function getAllModels() {
   return Object.entries(MODELS).map(([tier, model]) => ({
     tier: tier as GeminiModelTier,
@@ -210,14 +202,17 @@ Asagidaki JSON formatinda SADECE JSON olarak cevap ver:
   });
 
   try {
-    const idea = JSON.parse(text) as IdeaProposal;
-    return idea;
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]) as IdeaProposal;
+    }
+    return JSON.parse(text) as IdeaProposal;
   } catch {
-    throw new Error("Gemini cevabi JSON olarak parse edilemedi");
+    throw new Error("LLM cevabi JSON olarak parse edilemedi");
   }
 }
 
-/** Onayli fikir icin detayli product-spec.md olustur — Pro (derin analiz) */
+/** Onayli fikir icin detayli product-spec.md olustur */
 export async function generateProductSpec(idea: IdeaProposal, category: string): Promise<string> {
   const prompt = `Sen bir teknik urun yoneticisisin. Asagidaki onayli uygulama fikri icin detayli bir product-spec.md dosyasi olustur.
 
