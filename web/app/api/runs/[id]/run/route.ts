@@ -117,13 +117,13 @@ async function runApp(id: string, force: boolean): Promise<NextResponse<RunResul
 
                                            if (vercelToken) {
                                                    target = "vercel";
-                                                   result = await deployToVercel({ appName, runId: id, appDir });
+                                                   result = await deployToVercel({ appName, runId: id, appDir }) as unknown as Record<string, unknown>;
                                                  } else if (hasCoolify) {
                                                    target = "coolify";
-                                                   result = await deployGeneratedApp({ appName, runId: id, appDir });
+                                                   result = await deployGeneratedApp({ appName, runId: id, appDir }) as unknown as Record<string, unknown>;
                                                  } else {
                                                    target = "github";
-                                                   result = await deployGeneratedApp({ appName, runId: id, appDir });
+                                                   result = await deployGeneratedApp({ appName, runId: id, appDir }) as unknown as Record<string, unknown>;
                                                  }
 
                                            // Persist result

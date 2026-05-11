@@ -31,7 +31,7 @@ export function AppPreview({ url, appName }: AppPreviewProps) {
                                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0" />
                                 <span className="text-sm font-medium text-content truncate">
                                   {appName ? `${appName} - canli onizleme` : "Canli onizleme"}
-                                </span>span>
+                                </span>
                                 <a
                                               href={url}
                                               target="_blank"
@@ -39,8 +39,8 @@ export function AppPreview({ url, appName }: AppPreviewProps) {
                                               className="ml-2 text-xs text-content-muted hover:text-content truncate"
                                             >
                                   {url}
-                                </a>a>
-                      </div>div>
+                                </a>
+                      </div>
                       <div className="flex items-center gap-2">
                                 <Button
                                               variant="ghost"
@@ -48,23 +48,23 @@ export function AppPreview({ url, appName }: AppPreviewProps) {
                                               onClick={() => setReloadKey((k) => k + 1)}
                                             >
                                             Yenile
-                                </Button>Button>
+                                </Button>
                                 <Button
                                               variant="ghost"
                                               size="sm"
                                               onClick={() => window.open(url, "_blank", "noopener")}
                                             >
                                             Yeni sekme
-                                </Button>Button>
+                                </Button>
                                 <Button
                                               variant="ghost"
                                               size="sm"
                                               onClick={() => setCollapsed((c) => !c)}
                                             >
                                   {collapsed ? "Goster" : "Gizle"}
-                                </Button>Button>
-                      </div>div>
-              </div>div>
+                                </Button>
+                      </div>
+              </div>
           {!collapsed && (
                   <div className="bg-black/40">
                             <iframe
@@ -76,9 +76,8 @@ export function AppPreview({ url, appName }: AppPreviewProps) {
                                           referrerPolicy="no-referrer"
                                           loading="lazy"
                                         />
-                  </div>div>
+                  </div>
               )}
-        </Card>Card>
+        </Card>
       );
 }
-</Card>

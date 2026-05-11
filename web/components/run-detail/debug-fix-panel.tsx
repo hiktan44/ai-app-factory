@@ -77,19 +77,19 @@ export function DebugFixPanel({ runId, isCompleted, isFailed }: DebugFixPanelPro
                                   onClick={() => setIsOpen(!isOpen)}
                                 >
                         {isOpen ? "Kapat" : "Hata Duzelt / Debug"}
-                      </Button>Button>
-              </div>div>
+                      </Button>
+              </div>
         
           {isOpen && (
                   <Card className="p-5 border-brand/20 bg-brand/5">
                             <h3 className="text-sm font-semibold text-content mb-1">
                               {isFailed ? "Hata Analizi" : "Sorunu Acikla"}
-                            </h3>h3>
+                            </h3>
                             <p className="text-xs text-content-muted mb-4">
                               {isFailed
                                               ? "Bos birakirsan otomatik analiz yapar. Istersen sorunu detaylandir."
                                               : "Uygulamada neyin calismadigini acikla. Claude analiz edip duzeltecek."}
-                            </p>p>
+                            </p>
                   
                             <div className="space-y-3">
                                         <textarea
@@ -118,7 +118,7 @@ export function DebugFixPanel({ runId, isCompleted, isFailed }: DebugFixPanelPro
                                                                         onClick={() => handleAction("analyze")}
                                                                       >
                                                         {activeAction === "analyze" ? "Analiz Ediliyor..." : "Analiz Et"}
-                                                      </Button>Button>
+                                                      </Button>
                                         
                                                       <Button
                                                                         variant="primary"
@@ -127,9 +127,9 @@ export function DebugFixPanel({ runId, isCompleted, isFailed }: DebugFixPanelPro
                                                                         onClick={() => handleAction("fix")}
                                                                       >
                                                         {activeAction === "fix" ? "Duzeltiliyor..." : "Analiz Et ve Duzelt"}
-                                                      </Button>Button>
-                                        </div>div>
-                            </div>div>
+                                                      </Button>
+                                        </div>
+                            </div>
                   
                     {loading && (
                                 <div className="mt-4 flex items-center gap-3 text-sm text-content-muted">
@@ -138,73 +138,72 @@ export function DebugFixPanel({ runId, isCompleted, isFailed }: DebugFixPanelPro
                                                 {activeAction === "analyze"
                                                                     ? "Claude kodu analiz ediyor..."
                                                                     : "Claude kodu analiz edip duzeltiyor..."}
-                                              </span>span>
-                                </div>div>
+                                              </span>
+                                </div>
                             )}
                   
                     {result && (
                                 <div className="mt-4 space-y-3">
                                   {result.error ? (
                                                   <div className="p-3 bg-danger/10 border border-danger/20 rounded-xl">
-                                                                    <p className="text-sm text-danger font-medium">Hata</p>p>
-                                                                    <p className="text-xs text-danger/80 mt-1">{result.error}</p>p>
+                                                                    <p className="text-sm text-danger font-medium">Hata</p>
+                                                                    <p className="text-xs text-danger/80 mt-1">{result.error}</p>
                                                     {result.details && (
                                                                         <p className="text-xs text-content-muted mt-1 font-mono">
                                                                           {result.details}
-                                                                        </p>p>
+                                                                        </p>
                                                                     )}
-                                                  </div>div>
+                                                  </div>
                                                 ) : (
                                                   <>
                                                     {result.appliedFixes && result.appliedFixes.length > 0 && (
                                                                         <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
                                                                                               <p className="text-sm text-emerald-400 font-medium mb-2">
                                                                                                                       Uygulanan Duzeltmeler
-                                                                                                </p>p>
+                                                                                                </p>
                                                                           {result.appliedFixes.map((fix, i) => (
                                                                                                   <p
                                                                                                                               key={i}
                                                                                                                               className="text-xs text-emerald-300/80 font-mono"
                                                                                                                             >
                                                                                                     {fix}
-                                                                                                    </p>p>
+                                                                                                    </p>
                                                                                                 ))}
-                                                                        </div>div>
+                                                                        </div>
                                                                     )}
                                                   
                                                     {result.commands && result.commands.length > 0 && (
                                                                         <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
                                                                                               <p className="text-sm text-amber-400 font-medium mb-2">
                                                                                                                       Calistirilacak Komutlar
-                                                                                                </p>p>
+                                                                                                </p>
                                                                           {result.commands.map((cmd, i) => (
                                                                                                   <p
                                                                                                                               key={i}
                                                                                                                               className="text-xs text-amber-300/80 font-mono bg-black/30 p-1.5 rounded mt-1"
                                                                                                                             >
                                                                                                                             $ {cmd}
-                                                                                                    </p>p>
+                                                                                                    </p>
                                                                                                 ))}
-                                                                        </div>div>
+                                                                        </div>
                                                                     )}
                                                   
                                                     {result.analysis && (
                                                                         <div className="p-3 bg-surface-tertiary border border-edge rounded-xl">
                                                                                               <p className="text-sm text-content font-medium mb-2">
                                                                                                                       Analiz Raporu
-                                                                                                </p>p>
+                                                                                                </p>
                                                                                               <div className="text-xs text-content-secondary whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto">
                                                                                                 {result.analysis}
-                                                                                                </div>div>
-                                                                        </div>div>
+                                                                                                </div>
+                                                                        </div>
                                                                     )}
-                                                  </>>
+                                                  </>
                                                 )}
-                                </div>div>
+                                </div>
                             )}
-                  </Card>Card>
+                  </Card>
               )}
-        </div>div>
+        </div>
       );
 }
-</></div>

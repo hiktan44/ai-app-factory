@@ -115,7 +115,7 @@ export default function RunDetailPage({
                         <div className="h-20 bg-surface-card rounded-xl animate-pulse" />
                         <div className="h-12 bg-surface-card rounded-xl animate-pulse" />
                         <div className="h-[500px] bg-surface-card rounded-xl animate-pulse" />
-                </div>div>
+                </div>
               );
   }
   
@@ -160,7 +160,7 @@ export default function RunDetailPage({
                                 }`}
                               >
                       {deployMessage}
-                    </div>div>
+                    </div>
                 )}
           
                 <StepProgress steps={steps} currentStep={currentStep} />
@@ -174,13 +174,12 @@ export default function RunDetailPage({
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div className="lg:col-span-2">
                                   <LogViewer content={logs} isLive={isRunning} />
-                        </div>div>
+                        </div>
                         <div className="space-y-4">
                                   <CostTracker steps={steps} totalCost={totalCost} />
                                   <ArtifactBrowser runId={id} />
-                        </div>div>
-                </div>div>
-          </div>div>
+                        </div>
+                </div>
+          </div>
         );
 }
-</div>
