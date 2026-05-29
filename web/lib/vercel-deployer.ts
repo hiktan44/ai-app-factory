@@ -22,7 +22,8 @@ interface DeployStep {
   message: string;
 }
 
-const VERCEL_TEAM_ID = "team_xSNPPRu1DkUfzby6KCuYn2oE";
+// Default/fallback Vercel Team ID if not provided in settings
+const DEFAULT_VERCEL_TEAM_ID = "team_xSNPPRu1DkUfzby6KCuYn2oE";
 
 /**
  * Deploy a generated app to Vercel via GitHub + Vercel API.
@@ -38,6 +39,7 @@ export async function deployToVercel(
 ): Promise<VercelDeployResult> {
   const steps: DeployStep[] = [];
   const settings = readSettings();
+  const vercelTeamId = settings.vercelTeamId || process.env.VERCEL_TEAM_ID || DEFAULT_VERCEL_TEAM_ID;
 
   // Validate credentials
   if (!settings.githubToken) {
@@ -140,15 +142,7 @@ export async function deployToVercel(
       fs.writeFileSync(gitignorePath, "node_modules/\n.next/\n.env\n.env.local\n.vercel/\n");
     }
 
-    // Create vercel.json for proper Next.js config
-    const vercelJsonPath = path.join(config.appDir, "vercel.json");
-    if (!fs.existsSync(vercelJsonPath)) {
-      fs.writeFileSync(vercelJsonPath, JSON.stringify({
-        framework: "nextjs",
-        buildCommand: "pnpm run build",
-        installCommand: "pnpm install",
-      }, null, 2));
-    }
+
 
     const gitExec = (cmd: string) =>
       execSync(cmd, {
@@ -194,7 +188,7 @@ export async function deployToVercel(
   try {
     // Check if project already exists
     const existingRes = await fetch(
-      `https://api.vercel.com/v9/projects/${repoName}?teamId=${VERCEL_TEAM_ID}`,
+      `https://api.vercel.com/v9/projects/${repoName}?teamId=${vercelTeamId}`,
       { headers: { Authorization: `Bearer ${vercelToken}` } }
     );
 
@@ -205,7 +199,7 @@ export async function deployToVercel(
 
       // Trigger a new deployment by creating a deployment
       const deployRes = await fetch(
-        `https://api.vercel.com/v13/deployments?teamId=${VERCEL_TEAM_ID}`,
+        `https://api.vercel.com/v13/deployments?teamId=${vercelTeamId}`,
         {
           method: "POST",
           headers: {
@@ -231,7 +225,7 @@ export async function deployToVercel(
     } else {
       // Create new project from GitHub
       const createRes = await fetch(
-        `https://api.vercel.com/v10/projects?teamId=${VERCEL_TEAM_ID}`,
+        `https://api.vercel.com/v10/projects?teamId=${vercelTeamId}`,
         {
           method: "POST",
           headers: {
@@ -277,7 +271,7 @@ export async function deployToVercel(
       // Wait briefly, then check deployments
       await new Promise((r) => setTimeout(r, 3000));
       const deploymentsRes = await fetch(
-        `https://api.vercel.com/v6/deployments?projectId=${projectId}&teamId=${VERCEL_TEAM_ID}&limit=1`,
+        `https://api.vercel.com/v6/deployments?projectId=${projectId}&teamId=${vercelTeamId}&limit=1`,
         { headers: { Authorization: `Bearer ${vercelToken}` } }
       );
       if (deploymentsRes.ok) {
@@ -312,7 +306,7 @@ export async function deployToVercel(
     projectId,
     deploymentUrl,
     githubRepoUrl: repoHtmlUrl,
-    dashboardUrl: `https://vercel.com/${VERCEL_TEAM_ID}/${repoName}`,
+    dashboardUrl: `https://vercel.com/${vercelTeamId}/${repoName}`,
     steps,
   };
 }
