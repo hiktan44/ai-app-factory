@@ -252,7 +252,7 @@ export default function IdeaLabPage() {
                 <div>
                   <p className="text-xs text-content-muted font-medium mb-2">✅ Temel Özellikler</p>
                   <ul className="space-y-1">
-                    {editedIdea.keyFeatures.map((f, i) => (
+                    {(editedIdea.keyFeatures || []).map((f, i) => (
                       <li key={i} className="text-sm text-content-secondary flex gap-2">
                         <span className="text-success">•</span> {f}
                       </li>
@@ -263,7 +263,7 @@ export default function IdeaLabPage() {
                 <div>
                   <p className="text-xs text-content-muted font-medium mb-2">🔧 Teknoloji Stack</p>
                   <div className="flex flex-wrap gap-2">
-                    {editedIdea.techStack.map((t, i) => (
+                    {(editedIdea.techStack || []).map((t, i) => (
                       <span key={i} className="px-2 py-1 rounded-lg bg-surface-secondary text-xs text-content-secondary border border-edge">{t}</span>
                     ))}
                   </div>
@@ -370,10 +370,10 @@ function buildProductSpec(idea: EnhancedIdea, research: ResearchResult | null): 
     `${idea.uniqueValueProp}`,
     ``,
     `## Temel Özellikler`,
-    ...idea.keyFeatures.map((f) => `- ${f}`),
+    ...(idea.keyFeatures || []).map((f) => `- ${f}`),
     ``,
     `## Teknoloji Stack`,
-    ...idea.techStack.map((t) => `- ${t}`),
+    ...(idea.techStack || []).map((t) => `- ${t}`),
     ``,
     `## Gelir Modeli`,
     `${idea.monetizationStrategy}`,

@@ -72,7 +72,7 @@ export default function DashboardPage() {
       </Card>
 
       {/* Stats */}
-      {runs.length > 0 && <StatsBar stats={stats} />}
+      {runs && runs.length > 0 && <StatsBar stats={stats} />}
 
       {/* Recent Runs */}
       <div>
@@ -80,7 +80,7 @@ export default function DashboardPage() {
           <h2 className="text-lg font-semibold text-content">
             Son Pipeline'lar
           </h2>
-          {runs.length > 6 && (
+          {runs && runs.length > 6 && (
             <Link
               href="/runs"
               className="text-sm text-content-muted hover:text-content transition-colors flex items-center gap-1"
@@ -90,7 +90,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {recentRuns.length > 0 ? (
+        {recentRuns && recentRuns.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
             {recentRuns.map((run) => (
               <RunCard key={run.id} run={run} />

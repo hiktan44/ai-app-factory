@@ -127,7 +127,7 @@ export default function RunsPage() {
       </div>
 
       {/* Durum Bilgisi */}
-      {(runningCount > 0 || queue.length > 0) && (
+      {(runningCount > 0 || (queue && queue.length > 0)) && (
         <Card className="p-4 animate-fade-in">
           <div className="flex items-center gap-4 text-sm">
             {runningCount > 0 && (
@@ -138,7 +138,7 @@ export default function RunsPage() {
                 </span>
               </div>
             )}
-            {queue.length > 0 && (
+            {queue && queue.length > 0 && (
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-yellow-400" />
                 <span className="text-content-secondary">
@@ -151,7 +151,7 @@ export default function RunsPage() {
       )}
 
       {/* Kuyruk */}
-      {queue.length > 0 && (
+      {queue && queue.length > 0 && (
         <div className="animate-fade-in">
           <h2 className="text-sm font-semibold text-content-secondary mb-3">Kuyrukta Bekleyenler</h2>
           <div className="space-y-2">
@@ -177,7 +177,7 @@ export default function RunsPage() {
         </div>
       )}
 
-      {runs.length > 0 ? (
+      {runs && runs.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
           {runs.map((run) => (
             <RunCard
