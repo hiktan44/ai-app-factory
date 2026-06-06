@@ -246,8 +246,9 @@ Asagidaki JSON formatinda SADECE JSON olarak cevap ver:
 
   try {
     return cleanAndParseJson<IdeaProposal>(text);
-  } catch (err) {
-    throw new Error("LLM cevabi JSON olarak parse edilemedi");
+  } catch (err: any) {
+    console.error("[generateIdea] Parse hatası:", err.message, "| Dönen metin:", text);
+    throw new Error(`LLM cevabi JSON olarak parse edilemedi. Hata: ${err.message}. Ham metin: ${text.slice(0, 500)}`);
   }
 }
 

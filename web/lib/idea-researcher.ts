@@ -314,7 +314,12 @@ Yukarıdaki araştırma verilerini kullanarak bu fikri geliştir ve JSON döndü
 
     // JSON parse
     if (responseText) {
-      return cleanAndParseJson<EnhancedIdea>(responseText);
+      try {
+        return cleanAndParseJson<EnhancedIdea>(responseText);
+      } catch (err: any) {
+        console.error("[enhanceIdeaWithLLM] Parse hatası:", err.message, "| Dönen metin:", responseText);
+        throw new Error(`Fikir geliştirme yanıtı JSON olarak parse edilemedi. Hata: ${err.message}. Ham metin: ${responseText.slice(0, 500)}`);
+      }
     }
   } catch (e) {
     console.error("LLM enhance error:", e);
