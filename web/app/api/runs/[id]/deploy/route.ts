@@ -41,26 +41,36 @@ export async function POST(
       if (match) appName = match[1].trim();
     }
 
-    // Determine deploy target: vercel > coolify > github-only
+    // Determine deploy target: vercel > coolify > github
     const url = new URL(request.url);
     const targetParam = url.searchParams.get("target");
     const vercelToken = process.env.VERCEL_TOKEN || settings.vercelToken || "";
     const hasCoolify = !!(settings.coolifyApiUrl && settings.coolifyApiToken);
 
-    // Auto-detect target if not specified
+    // Auto-detect target if not specified: Vercel is primary, then Coolify, then github-only
     const target = targetParam || (vercelToken ? "vercel" : hasCoolify ? "coolify" : "github");
 
     let result;
 
-    if (target === "vercel" && vercelToken) {
-      // Vercel deploy (primary)
+    if (target === "vercel") {
+      if (!vercelToken) {
+        return NextResponse.json(
+          { error: "Vercel token ayarlanmamış. VERCEL_TOKEN env var veya settings'e ekleyin." },
+          { status: 400 },
+        );
+      }
       result = await deployToVercel({ appName, runId: id, appDir });
-    } else if (target === "coolify" && hasCoolify) {
-      // Coolify deploy (secondary)
+    } else if (target === "coolify") {
+      if (!hasCoolify) {
+        return NextResponse.json(
+          { error: "Coolify credentials ayarlanmamış." },
+          { status: 400 },
+        );
+      }
       result = await deployGeneratedApp({ appName, runId: id, appDir });
     } else {
       // GitHub-only: just push code, no hosting
-      result = await deployGeneratedApp({ appName, runId: id, appDir });
+      result = await deployGeneratedApp({ appName, runId: id, appDir, githubOnly: true });
     }
 
     // Save deploy result to run directory

@@ -42,7 +42,10 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Idea generation failed:", error);
-    const message = error instanceof Error ? error.message : "Fikir üretilemedi";
+    const isProd = process.env.NODE_ENV === "production";
+    const message = isProd
+      ? "Fikir üretilirken sistemsel bir hata oluştu."
+      : (error instanceof Error ? error.message : "Fikir üretilemedi");
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

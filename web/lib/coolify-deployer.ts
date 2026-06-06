@@ -4,6 +4,7 @@ export interface DeployConfig {
   appName: string;
   runId: string;
   appDir: string;
+  githubOnly?: boolean;
 }
 
 export interface DeployResult {
@@ -40,7 +41,7 @@ export async function deployGeneratedApp(
   const settings = readSettings();
 
   // Validate credentials
-  if (!settings.coolifyApiUrl || !settings.coolifyApiToken) {
+  if (!config.githubOnly && (!settings.coolifyApiUrl || !settings.coolifyApiToken)) {
     return {
       success: false,
       error: "Coolify API credentials not configured",
@@ -185,6 +186,14 @@ export async function deployGeneratedApp(
       : String(e);
     steps.push({ name: "github_push", status: "failed", message: errMsg.slice(0, 500) });
     return { success: false, error: `GitHub push hatası: ${errMsg.slice(0, 300)}`, githubRepoUrl: repoHtmlUrl, steps };
+  }
+
+  if (config.githubOnly) {
+    return {
+      success: true,
+      githubRepoUrl: repoHtmlUrl,
+      steps,
+    };
   }
 
   // 3. Create Coolify application

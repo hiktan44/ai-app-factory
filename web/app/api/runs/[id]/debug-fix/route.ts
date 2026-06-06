@@ -86,9 +86,11 @@ export async function POST(
     // Specific file content if requested
     let specificFile = "";
     if (filePath) {
-      const fullPath = path.join(runDir, filePath);
-      if (fullPath.startsWith(runDir) && fs.existsSync(fullPath)) {
-        specificFile = fs.readFileSync(fullPath, "utf-8");
+      const resolvedPath = path.resolve(runDir, filePath);
+      const relative = path.relative(runDir, resolvedPath);
+      const isSafe = relative && !relative.startsWith('..') && !path.isAbsolute(relative);
+      if (isSafe && fs.existsSync(resolvedPath)) {
+        specificFile = fs.readFileSync(resolvedPath, "utf-8");
       }
     }
 
@@ -198,9 +200,10 @@ ${appContext}`;
           const appliedFixes: string[] = [];
           if (fixData.fixes && Array.isArray(fixData.fixes)) {
             for (const fix of fixData.fixes) {
-              const targetPath = path.join(appDir, fix.filePath);
-              // Security: ensure within appDir
-              if (!targetPath.startsWith(appDir)) continue;
+              const targetPath = path.resolve(appDir, fix.filePath);
+              const relative = path.relative(appDir, targetPath);
+              const isSafe = relative && !relative.startsWith('..') && !path.isAbsolute(relative);
+              if (!isSafe) continue;
               // Create directory if needed
               const dir = path.dirname(targetPath);
               if (!fs.existsSync(dir)) {
