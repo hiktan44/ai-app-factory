@@ -73,28 +73,37 @@ async function callGemini(opts: {
 
   console.log(`[Gemini] Model: ${model.label} | Gorev: ${opts.task}`);
 
-  const messages: Array<{ role: string; content: string }> = [];
-  if (opts.systemPrompt) {
-    messages.push({ role: "system", content: opts.systemPrompt });
-  }
-  messages.push({ role: "user", content: opts.prompt });
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model.id}:generateContent?key=${apiKey}`;
 
-  const response = await fetch(GEMINI_BASE_URL, {
+  const body: any = {
+    contents: [
+      {
+        role: "user",
+        parts: [{ text: opts.prompt }]
+      }
+    ],
+    generationConfig: {
+      temperature: opts.temperature ?? 0.7,
+      topP: opts.topP ?? 0.9,
+      maxOutputTokens: opts.maxOutputTokens ?? 8192,
+      ...(opts.responseMimeType === "application/json" && {
+        responseMimeType: "application/json"
+      })
+    }
+  };
+
+  if (opts.systemPrompt) {
+    body.systemInstruction = {
+      parts: [{ text: opts.systemPrompt }]
+    };
+  }
+
+  const response = await fetch(url, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      model: model.id,
-      messages,
-      temperature: opts.temperature ?? 0.7,
-      top_p: opts.topP ?? 0.9,
-      max_tokens: opts.maxOutputTokens ?? 4096,
-      ...(opts.responseMimeType === "application/json" && {
-        response_format: { type: "json_object" },
-      }),
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
@@ -104,9 +113,9 @@ async function callGemini(opts: {
   }
 
   const data = await response.json() as {
-    choices?: Array<{ message?: { content?: string } }>;
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
   };
-  const text = data.choices?.[0]?.message?.content;
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
   if (!text) {
     throw new Error(`Gemini API bos cevap dondu (${model.label})`);

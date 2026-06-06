@@ -65,23 +65,29 @@ call_gemini() {
     --arg sys "$system_prompt" \
     --arg usr "$user_prompt" \
     '{
-      model: "gemini-3.5-flash",
-      max_tokens: 8192,
-      messages: [
-        { role: "system", content: $sys },
-        { role: "user", content: $usr }
-      ]
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: $usr }]
+        }
+      ],
+      systemInstruction: {
+        parts: [{ text: $sys }]
+      },
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 8192
+      }
     }')
 
   local response
   response=$(curl -s -X POST \
-    "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions" \
-    -H "Authorization: Bearer ${GEMINI_API_KEY}" \
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${GEMINI_API_KEY}" \
     -H "Content-Type: application/json" \
     -d "$payload" 2>/dev/null)
 
   local text
-  text=$(echo "$response" | jq -r '.choices[0].message.content // empty' 2>/dev/null || echo "")
+  text=$(echo "$response" | jq -r '.candidates[0].content.parts[0].text // empty' 2>/dev/null || echo "")
 
   if [ -n "$text" ]; then
     echo "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":$(echo "$text" | jq -Rs .)}" > "$output_file"

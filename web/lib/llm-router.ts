@@ -189,19 +189,27 @@ async function callClaude(apiKey: string, systemPrompt: string, userPrompt: stri
 }
 
 async function callGemini(apiKey: string, systemPrompt: string, userPrompt: string, maxTokens: number): Promise<string> {
-  const res = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+
+  const res = await fetch(url, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "gemini-3.5-flash",
-      max_tokens: maxTokens,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: userPrompt }]
+        }
       ],
+      systemInstruction: {
+        parts: [{ text: systemPrompt }]
+      },
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: maxTokens || 8192,
+      }
     }),
   });
 
@@ -210,8 +218,10 @@ async function callGemini(apiKey: string, systemPrompt: string, userPrompt: stri
     throw new Error(`Gemini API hatası: ${res.status} - ${err}`);
   }
 
-  const data = await res.json() as { choices: Array<{ message: { content: string } }> };
-  return data.choices[0]?.message?.content || "";
+  const data = await res.json() as {
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+  };
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 }
 
 async function callGrok(apiKey: string, systemPrompt: string, userPrompt: string, maxTokens: number): Promise<string> {
