@@ -1,6 +1,7 @@
 /**
  * Idea Researcher - GitHub, HuggingFace ve web'den fikir araştırma
  */
+import { cleanAndParseJson } from "./gemini";
 
 export interface TrendingRepo {
   name: string;
@@ -312,10 +313,8 @@ Yukarıdaki araştırma verilerini kullanarak bu fikri geliştir ve JSON döndü
     }
 
     // JSON parse
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]) as EnhancedIdea;
-      return parsed;
+    if (responseText) {
+      return cleanAndParseJson<EnhancedIdea>(responseText);
     }
   } catch (e) {
     console.error("LLM enhance error:", e);

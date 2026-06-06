@@ -5,6 +5,7 @@
  */
 
 import { readSettings } from "./settings";
+import { cleanAndParseJson } from "./gemini";
 
 // ─── Tipler ─────────────────────────────────────────────────────────────────
 
@@ -777,9 +778,7 @@ Aşağıdaki JSON formatında SADECE JSON döndür (başka hiçbir şey yazma):
   if (!text) throw new Error("Gemini boş yanıt döndürdü");
 
   try {
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("JSON bulunamadı");
-    return JSON.parse(jsonMatch[0]) as IdeaWithTrends;
+    return cleanAndParseJson<IdeaWithTrends>(text);
   } catch {
     throw new Error("Gemini yanıtı JSON olarak parse edilemedi");
   }

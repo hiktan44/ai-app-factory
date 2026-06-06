@@ -136,6 +136,35 @@ export function getAllModels() {
   }));
 }
 
+/** JSON temizleme ve parse yardımcısı */
+export function cleanAndParseJson<T>(text: string): T {
+  let cleaned = text.trim();
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```[a-zA-Z]*\n/, "").replace(/\n```$/, "").trim();
+  }
+  
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    console.error("[JSON Parse Error] JSON nesnesi bulunamadı. Ham metin:", text);
+    throw new Error("LLM cevabında JSON nesnesi bulunamadı");
+  }
+  cleaned = jsonMatch[0];
+
+  // String değerlerin içerisindeki gerçek satır sonlarını kaçış karakteriyle değiştir
+  cleaned = cleaned.replace(/"([^"\\]*(?:\\.[^"\\]*)*)"/g, (match, p1) => {
+    const escaped = p1.replace(/\n/g, "\\n").replace(/\r/g, "\\r");
+    return `"${escaped}"`;
+  });
+
+  try {
+    return JSON.parse(cleaned) as T;
+  } catch (err: any) {
+    console.error("[JSON Parse Error] Parse hatası:", err.message);
+    console.error("[JSON Parse Error] Temizlenmiş metin:", cleaned);
+    throw err;
+  }
+}
+
 /** Kategori icin SaaS uygulama fikri uret — trend verileriyle desteklenmis */
 export async function generateIdea(category: string, trendContext?: string): Promise<IdeaProposal> {
   const seed = Math.random().toString(36).substring(2, 8);
@@ -207,12 +236,8 @@ Asagidaki JSON formatinda SADECE JSON olarak cevap ver:
   });
 
   try {
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]) as IdeaProposal;
-    }
-    return JSON.parse(text) as IdeaProposal;
-  } catch {
+    return cleanAndParseJson<IdeaProposal>(text);
+  } catch (err) {
     throw new Error("LLM cevabi JSON olarak parse edilemedi");
   }
 }
