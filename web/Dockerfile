@@ -8,7 +8,7 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 COPY web/package.json web/pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --production=false
 
 # Stage 2: Build
 FROM node:20-alpine AS builder
@@ -22,7 +22,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME="0.0.0.0"
 ENV NEXT_PRIVATE_LOCAL_IP="0.0.0.0"
 
-RUN pnpm run build
+RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm run build
 
 # Stage 3: Production runner
 FROM node:20-alpine AS runner
