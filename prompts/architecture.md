@@ -187,11 +187,17 @@ Hiyerarşik bileşen yapısı:
 ### 6. `architecture/dependencies.json`
 ```json
 {
-  "dependencies": {},
-  "devDependencies": {}
+  "dependencies": {
+    "next": "16.2.5",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "devDependencies": {
+    "eslint-config-next": "16.2.5"
+  }
 }
 ```
-Exact version numaraları ile. Sadece GEREKLİ paketler — minimalist ol.
+Güvenlik Gereksinimi: Vercel güvenlik zafiyeti uyarılarını (Vulnerable version of Next.js) engellemek için `next` ve `eslint-config-next` sürümleri kesinlikle `16.2.5` olarak seçilmelidir. Zafiyet barındıran eski veya savunmasız sürümler kesinlikle kullanılmamalıdır.
 
 ### 7. `architecture/tech_decisions.md`
 Her teknoloji seçiminin gerekçesi. Format:

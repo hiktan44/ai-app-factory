@@ -20,7 +20,7 @@ Sonra `app/` klasörüne çalışan bir uygulama kodla.
    - TypeScript kullan
    - Tailwind CSS kullan
    - src/ klasörü KULLANMA (app/ direkt root'ta)
-2. `architecture/dependencies.json`'daki paketleri kur
+2. `architecture/dependencies.json`'daki paketleri ve tam sürümlerini (özellikle Next.js `16.2.5` ve React `19.0.0`) `package.json` dosyasına yazarak kur. Sürüm uyuşmazlığı veya güvenlik uyarısı veren eski sürümleri ez.
 3. `architecture/design_tokens.json`'u `tailwind.config.ts`'e çevir
 4. Supabase client yapılandırmasını oluştur (`lib/supabase/`)
 5. Supabase migration dosyalarını oluştur (`supabase/migrations/`)
