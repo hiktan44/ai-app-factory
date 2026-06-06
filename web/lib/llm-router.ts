@@ -221,7 +221,8 @@ async function callGemini(apiKey: string, systemPrompt: string, userPrompt: stri
   const data = await res.json() as {
     candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
   };
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  const parts = data.candidates?.[0]?.content?.parts;
+  return parts ? parts.map(p => p.text || "").join("") : "";
 }
 
 async function callGrok(apiKey: string, systemPrompt: string, userPrompt: string, maxTokens: number): Promise<string> {

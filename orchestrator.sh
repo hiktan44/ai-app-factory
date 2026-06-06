@@ -281,6 +281,36 @@ RUNNER_EOF
   # Exit code kontrolü
   if [ $exit_code -ne 0 ]; then
     log "HATA: Claude CLI exit code: ${exit_code}"
+    
+    # Check for authentication errors
+    local auth_err=false
+    if [ -f "${stderr_file}" ] && (grep -qiE "401|auth|token|unauthorized" "${stderr_file}" || grep -qi "Failed to authenticate" "${stderr_file}"); then
+      auth_err=true
+    fi
+    if [ -f "${output_file}" ] && (grep -qiE "401|auth|token|unauthorized" "${output_file}" || grep -qi "Failed to authenticate" "${output_file}"); then
+      auth_err=true
+    fi
+
+    if [ "$auth_err" = true ]; then
+      log "=========================================================================="
+      log "❌ KRİTİK HATA: Claude CLI Kimlik Doğrulama Hatası (401 - Unauthorized)"
+      log "Claude Code veya API anahtarınız geçersiz, süresi dolmuş ya da eksik!"
+      log ""
+      log "Çözüm Önerileri:"
+      log "1. Yerel Terminalde Çalıştırıyorsanız:"
+      log "   Terminalinizde 'claude login' komutunu çalıştırarak yeniden giriş yapın."
+      log ""
+      log "2. Docker veya Coolify Sunucusunda Çalıştırıyorsanız:"
+      log "   Yerel bilgisayarınızdaki Claude Code OAuth token'ını alın."
+      log "   Token'ı bulmak için yerel terminalinizde 'env | grep CLAUDE_CODE_OAUTH_TOKEN' komutunu çalıştırabilir"
+      log "   veya ~/.claude.json dosyasındaki 'oauthToken' değerini kopyalayabilirsiniz."
+      log "   Bu değeri sunucudaki .env dosyasına veya Web Arayüzünde Ayarlar -> CLAUDE_CODE_OAUTH_TOKEN olarak kaydedin."
+      log ""
+      log "3. API Key Kullanmak İstiyorsanız:"
+      log "   Web arayüzünden veya .env.local dosyasından geçerli bir 'ANTHROPIC_API_KEY' girin."
+      log "=========================================================================="
+    fi
+
     # Debug: stdout içeriğini de logla (hata mesajı stdout'a gidebilir)
     if [ -f "${output_file}" ] && [ -s "${output_file}" ]; then
       log "Claude CLI stdout (ilk 500 byte): $(head -c 500 "${output_file}")"
@@ -704,6 +734,11 @@ KALİTE KRİTERLERİ:
     log "product-spec.md bulunamadı, post-processing ile çıkarılıyor..."
     extract_and_write "${WORKSPACE}/logs/discover.json" "${WORKSPACE}/product-spec.md"
   fi
+
+  if [ ! -f "${WORKSPACE}/product-spec.md" ] || [ ! -s "${WORKSPACE}/product-spec.md" ]; then
+    log "HATA: Ürün spesifikasyonu (product-spec.md) üretilemedi. Keşif adımı başarısız oldu. Pipeline sonlandırılıyor."
+    exit 1
+  fi
 fi
 
 # ─── ADIM 2: MİMARİ ──────────────────────────────────────────
@@ -734,6 +769,11 @@ Görev:
 if [ ! -f "${WORKSPACE}/architecture/file_structure.md" ]; then
   log "Mimari dosyaları bulunamadı, post-processing ile çıkarılıyor..."
   extract_and_write "${WORKSPACE}/logs/architecture.json" "${WORKSPACE}/architecture/architecture-plan.md"
+fi
+
+if [ ! -f "${WORKSPACE}/architecture/file_structure.md" ] && [ ! -f "${WORKSPACE}/architecture/architecture-plan.md" ]; then
+  log "HATA: Mimari tasarım (architecture) dosyaları üretilemedi. Mimari adımı başarısız oldu. Pipeline sonlandırılıyor."
+  exit 1
 fi
 
 # ─── ADIM 3: KODLAMA ─────────────────────────────────────────
@@ -802,7 +842,8 @@ Görev:
 done
 
 if [ "$BUILD_SUCCESS" = false ]; then
-  log "UYARI: Build ${MAX_VERIFY_ATTEMPTS} denemede de başarısız oldu"
+  log "HATA: Build ${MAX_VERIFY_ATTEMPTS} denemede de başarısız oldu veya kod üretilemedi. Pipeline sonlandırılıyor."
+  exit 1
 fi
 
 # ─── ADIM 5: KOD REVİEW ──────────────────────────────────────
