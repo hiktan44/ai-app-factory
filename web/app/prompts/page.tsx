@@ -15,9 +15,9 @@ type PromptsMap = Record<string, PromptData>;
 
 const LLM_COLORS: Record<string, string> = {
   "Claude": "text-orange-400",
-  "Z.AI": "text-blue-400",
-  "Z.AI/Grok": "text-blue-400",
-  "Z.AI/Qwen": "text-green-400",
+  "Gemini": "text-blue-400",
+  "Gemini/Grok": "text-blue-400",
+  "Gemini/Qwen": "text-green-400",
 };
 
 export default function PromptsPage() {
@@ -182,7 +182,7 @@ export default function PromptsPage() {
               <div className="mt-3 p-3 rounded-lg bg-surface-secondary border border-edge">
                 <p className="text-xs text-content-muted">
                   💡 <strong>İpucu:</strong> Bu adım <strong>{prompts[selected].llm}</strong> ile çalışır.
-                  {prompts[selected].llm.includes("Z.AI") && " Z.AI (GLM-5.1) kod üretme, araştırma ve analiz için kullanılır."}
+                  {prompts[selected].llm.includes("Gemini") && " Gemini 3.5 Flash kod üretme, araştırma ve analiz için kullanılır."}
                   {prompts[selected].llm === "Claude" && " Claude kritik kod yazma ve mimari görevler için kullanılır."}
                   {prompts[selected].llm.includes("Qwen") && " Qwen çok dilli marketing içeriği için uygundur."}
                 </p>

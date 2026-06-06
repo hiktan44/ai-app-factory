@@ -229,7 +229,7 @@ export async function enhanceIdeaWithLLM(
   category: string,
   research: ResearchResult,
   llmApiKey: string,
-  llmProvider: "zai" | "claude" = "zai"
+  llmProvider: "gemini" | "claude" = "gemini"
 ): Promise<EnhancedIdea> {
   const researchContext = buildResearchContext(research);
 
@@ -251,7 +251,7 @@ ${researchContext}
 Yukarıdaki araştırma verilerini kullanarak bu fikri geliştir ve JSON döndür:
 {
   "originalIdea": "${userIdea}",
-  "enhancedIdea": "geliştirилmiş detaylı fikir açıklaması",
+  "enhancedIdea": "geliştirılmiş detaylı fikir açıklaması",
   "appName": "uygulama adı",
   "tagline": "kısa slogan",
   "keyFeatures": ["özellik1", "özellik2", "özellik3", "özellik4", "özellik5"],
@@ -268,15 +268,15 @@ Yukarıdaki araştırma verilerini kullanarak bu fikri geliştir ve JSON döndü
   try {
     let responseText = "";
 
-    if (llmProvider === "zai" && llmApiKey) {
-      const res = await fetch("https://api.z.ai/api/coding/paas/v4/chat/completions", {
+    if (llmProvider === "gemini" && llmApiKey) {
+      const res = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${llmApiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "glm-5.1",
+          model: "gemini-3.5-flash",
           max_tokens: 2048,
           messages: [
             { role: "system", content: systemPrompt },

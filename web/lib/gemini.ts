@@ -2,22 +2,22 @@ import type { IdeaProposal } from "./types";
 import { readSettings } from "./settings";
 
 // ============================================================
-// LLM Provider: Z.AI (GLM-5.1)
+// LLM Provider: Gemini (Google)
 // OpenAI-uyumlu API ile çalışır
 // ============================================================
 
-const ZAI_BASE_URL = "https://api.z.ai/api/coding/paas/v4/chat/completions";
+const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
-export type ZaiModelTier = "pro" | "flash";
+export type GeminiModelTier = "pro" | "flash";
 
-const MODELS: Record<ZaiModelTier, { id: string; label: string }> = {
+const MODELS: Record<GeminiModelTier, { id: string; label: string }> = {
   pro: {
-    id: "glm-5.1",
-    label: "GLM 5.1 (Z.AI)",
+    id: "gemini-3.5-flash",
+    label: "Gemini 3.5 Flash (Google)",
   },
   flash: {
-    id: "glm-5.1",
-    label: "GLM 5.1 (Z.AI)",
+    id: "gemini-3.5-flash",
+    label: "Gemini 3.5 Flash (Google)",
   },
 };
 
@@ -29,7 +29,7 @@ type TaskType =
   | "marketing"
   | "general";
 
-const TASK_MODEL_MAP: Record<TaskType, ZaiModelTier> = {
+const TASK_MODEL_MAP: Record<TaskType, GeminiModelTier> = {
   "idea-generation": "flash",
   "product-spec": "pro",
   "architecture": "pro",
@@ -45,12 +45,12 @@ const TASK_MODEL_MAP: Record<TaskType, ZaiModelTier> = {
 function getApiKey(): string {
   try {
     const settings = readSettings();
-    if (settings.zaiApiKey && !settings.zaiApiKey.includes("●")) {
-      return settings.zaiApiKey;
+    if (settings.geminiApiKey && !settings.geminiApiKey.includes("●")) {
+      return settings.geminiApiKey;
     }
   } catch { /* ignore */ }
-  const key = process.env.ZAI_API_KEY;
-  if (!key) throw new Error("Z.AI API key ayarlanmamış. Lütfen /settings sayfasından ekleyin.");
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw new Error("Gemini API key ayarlanmamış. Lütfen /settings sayfasından ekleyin.");
   return key;
 }
 
@@ -59,7 +59,7 @@ function selectModel(task: TaskType): { id: string; label: string } {
   return MODELS[tier];
 }
 
-async function callZai(opts: {
+async function callGemini(opts: {
   task: TaskType;
   prompt: string;
   systemPrompt?: string;
@@ -71,7 +71,7 @@ async function callZai(opts: {
   const apiKey = getApiKey();
   const model = selectModel(opts.task);
 
-  console.log(`[Z.AI] Model: ${model.label} | Gorev: ${opts.task}`);
+  console.log(`[Gemini] Model: ${model.label} | Gorev: ${opts.task}`);
 
   const messages: Array<{ role: string; content: string }> = [];
   if (opts.systemPrompt) {
@@ -79,7 +79,7 @@ async function callZai(opts: {
   }
   messages.push({ role: "user", content: opts.prompt });
 
-  const response = await fetch(ZAI_BASE_URL, {
+  const response = await fetch(GEMINI_BASE_URL, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
@@ -99,8 +99,8 @@ async function callZai(opts: {
 
   if (!response.ok) {
     const errText = await response.text();
-    console.error(`[Z.AI] API error (${model.id}):`, errText);
-    throw new Error(`Z.AI API hatasi (${model.label}): ${response.status}`);
+    console.error(`[Gemini] API error (${model.id}):`, errText);
+    throw new Error(`Gemini API hatasi (${model.label}): ${response.status}`);
   }
 
   const data = await response.json() as {
@@ -109,7 +109,7 @@ async function callZai(opts: {
   const text = data.choices?.[0]?.message?.content;
 
   if (!text) {
-    throw new Error(`Z.AI API bos cevap dondu (${model.label})`);
+    throw new Error(`Gemini API bos cevap dondu (${model.label})`);
   }
 
   return text;
@@ -127,7 +127,7 @@ export function getModelInfo(task: TaskType) {
 
 export function getAllModels() {
   return Object.entries(MODELS).map(([tier, model]) => ({
-    tier: tier as ZaiModelTier,
+    tier: tier as GeminiModelTier,
     id: model.id,
     label: model.label,
     tasks: Object.entries(TASK_MODEL_MAP)
@@ -197,7 +197,7 @@ Asagidaki JSON formatinda SADECE JSON olarak cevap ver:
   "uniqueValue": "Ilham alinan urununden ne farki var? Neden kullanicilar bunu secmeli? (1-2 cumle)"
 }`;
 
-  const text = await callZai({
+  const text = await callGemini({
     task: "idea-generation",
     prompt,
     temperature: 0.9,
@@ -246,7 +246,7 @@ Markdown formatinda detayli bir product-spec.md yaz. Icermesi gerekenler:
 
 Turkce yaz ama uygulama adi Ingilizce olabilir. Cok detayli ve gercekci ol.`;
 
-  return callZai({
+  return callGemini({
     task: "product-spec",
     prompt,
     temperature: 0.7,

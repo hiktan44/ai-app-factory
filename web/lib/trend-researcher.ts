@@ -672,10 +672,10 @@ function extractSaasOpportunities(
   return opps;
 }
 
-// ─── Z.AI ile trend bazlı fikir üretimi ──────────────────────────────
+// ─── Gemini ile trend bazlı fikir üretimi ──────────────────────────────
 
 /**
- * Trend verilerini Z.AI'ya göndererek derinlemesine analiz edilmiş fikir üret
+ * Trend verilerini Gemini'ye göndererek derinlemesine analiz edilmiş fikir üret
  */
 export async function generateIdeaWithTrends(
   category: string,
@@ -684,12 +684,12 @@ export async function generateIdeaWithTrends(
   angle: string
 ): Promise<IdeaWithTrends> {
   const settings = readSettings();
-  const apiKey = (settings.zaiApiKey && !settings.zaiApiKey.includes("●"))
-    ? settings.zaiApiKey
-    : (process.env.ZAI_API_KEY || "");
+  const apiKey = (settings.geminiApiKey && !settings.geminiApiKey.includes("●"))
+    ? settings.geminiApiKey
+    : (process.env.GEMINI_API_KEY || "");
 
   if (!apiKey) {
-    throw new Error("Z.AI API key ayarlanmamış. Lütfen /settings sayfasından ekleyin.");
+    throw new Error("Gemini API key ayarlanmamış. Lütfen /settings sayfasından ekleyin.");
   }
 
   const trendContext = buildTrendContext(trendData);
@@ -749,14 +749,14 @@ Aşağıdaki JSON formatında SADECE JSON döndür (başka hiçbir şey yazma):
   ]
 }`;
 
-  const res = await fetch("https://api.z.ai/api/coding/paas/v4/chat/completions", {
+  const res = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "glm-5.1",
+      model: "gemini-3.5-flash",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.9,
       top_p: 0.95,
@@ -767,21 +767,21 @@ Aşağıdaki JSON formatında SADECE JSON döndür (başka hiçbir şey yazma):
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Z.AI API hatası: ${res.status} — ${err.slice(0, 200)}`);
+    throw new Error(`Gemini API hatası: ${res.status} — ${err.slice(0, 200)}`);
   }
 
   const data = await res.json() as {
     choices?: Array<{ message?: { content?: string } }>;
   };
   const text = data.choices?.[0]?.message?.content;
-  if (!text) throw new Error("Z.AI boş yanıt döndürdü");
+  if (!text) throw new Error("Gemini boş yanıt döndürdü");
 
   try {
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("JSON bulunamadı");
     return JSON.parse(jsonMatch[0]) as IdeaWithTrends;
   } catch {
-    throw new Error("Z.AI yanıtı JSON olarak parse edilemedi");
+    throw new Error("Gemini yanıtı JSON olarak parse edilemedi");
   }
 }
 

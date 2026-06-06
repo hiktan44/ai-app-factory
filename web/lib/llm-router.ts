@@ -5,7 +5,7 @@
  * Araştırma, analiz ve basit görevler için ücretsiz/ucuz modeller kullanılır.
  */
 
-export type LLMProvider = "claude" | "zai" | "grok" | "qwen" | "minimax" | "openrouter";
+export type LLMProvider = "claude" | "gemini" | "grok" | "qwen" | "minimax" | "openrouter";
 
 export interface LLMConfig {
   provider: LLMProvider;
@@ -30,12 +30,12 @@ export const LLM_CONFIGS: Record<LLMProvider, LLMConfig> = {
     costTier: "expensive",
     capabilities: ["code", "creative", "reasoning", "architecture"],
   },
-  zai: {
-    provider: "zai",
-    model: "glm-5.1",
-    apiKeyEnvVar: "ZAI_API_KEY",
-    settingsKey: "zaiApiKey",
-    label: "Z.AI (GLM)",
+  gemini: {
+    provider: "gemini",
+    model: "gemini-3.5-flash",
+    apiKeyEnvVar: "GEMINI_API_KEY",
+    settingsKey: "geminiApiKey",
+    label: "Gemini 3.5 Flash",
     description: "Hızlı ve güçlü - araştırma ve analiz için",
     costTier: "cheap",
     capabilities: ["research", "analysis", "code", "text"],
@@ -104,16 +104,16 @@ export type PipelineStep =
   | "update_learnings"; // Öğrenme güncelleme → Z.AI
 
 export const STEP_PROVIDER_MAP: Record<PipelineStep, LLMProvider[]> = {
-  discover: ["zai", "openrouter", "grok", "claude"],
-  architecture: ["zai", "claude", "openrouter"],
-  build: ["zai", "claude", "openrouter"],
-  verify_fix: ["zai", "claude", "openrouter"],
-  review: ["zai", "openrouter", "claude"],
-  assets: ["zai", "openrouter", "claude"],
-  marketing: ["zai", "qwen", "openrouter", "claude"],
-  screenshots: ["zai", "openrouter", "claude"],
-  package: ["zai", "openrouter", "claude"],
-  update_learnings: ["zai", "openrouter", "claude"],
+  discover: ["gemini", "openrouter", "grok", "claude"],
+  architecture: ["gemini", "claude", "openrouter"],
+  build: ["gemini", "claude", "openrouter"],
+  verify_fix: ["gemini", "claude", "openrouter"],
+  review: ["gemini", "openrouter", "claude"],
+  assets: ["gemini", "openrouter", "claude"],
+  marketing: ["gemini", "qwen", "openrouter", "claude"],
+  screenshots: ["gemini", "openrouter", "claude"],
+  package: ["gemini", "openrouter", "claude"],
+  update_learnings: ["gemini", "openrouter", "claude"],
 };
 
 /**
@@ -148,8 +148,8 @@ export async function callLLM(
   switch (provider) {
     case "claude":
       return callClaude(apiKey, systemPrompt, userPrompt, maxTokens);
-    case "zai":
-      return callZai(apiKey, systemPrompt, userPrompt, maxTokens);
+    case "gemini":
+      return callGemini(apiKey, systemPrompt, userPrompt, maxTokens);
     case "grok":
       return callGrok(apiKey, systemPrompt, userPrompt, maxTokens);
     case "qwen":
@@ -188,15 +188,15 @@ async function callClaude(apiKey: string, systemPrompt: string, userPrompt: stri
   return data.content[0]?.text || "";
 }
 
-async function callZai(apiKey: string, systemPrompt: string, userPrompt: string, maxTokens: number): Promise<string> {
-  const res = await fetch("https://api.z.ai/api/coding/paas/v4/chat/completions", {
+async function callGemini(apiKey: string, systemPrompt: string, userPrompt: string, maxTokens: number): Promise<string> {
+  const res = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "glm-5.1",
+      model: "gemini-3.5-flash",
       max_tokens: maxTokens,
       messages: [
         { role: "system", content: systemPrompt },
@@ -207,7 +207,7 @@ async function callZai(apiKey: string, systemPrompt: string, userPrompt: string,
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Z.AI API hatası: ${res.status} - ${err}`);
+    throw new Error(`Gemini API hatası: ${res.status} - ${err}`);
   }
 
   const data = await res.json() as { choices: Array<{ message: { content: string } }> };

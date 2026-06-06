@@ -29,7 +29,7 @@ if [ -f "$SETTINGS_FILE" ]; then
   # settings.json'dan keyler okunur (jq ile)
   CLAUDE_OAUTH_TOKEN_LOCAL=$(jq -r '.claudeOauthToken // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
   ANTHROPIC_API_KEY_LOCAL=$(jq -r '.anthropicApiKey // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
-  ZAI_API_KEY_LOCAL=$(jq -r '.zaiApiKey // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
+  GEMINI_API_KEY_LOCAL=$(jq -r '.geminiApiKey // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
   GROK_API_KEY_LOCAL=$(jq -r '.grokApiKey // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
   QWEN_API_KEY_LOCAL=$(jq -r '.qwenApiKey // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
   OPENROUTER_API_KEY_LOCAL=$(jq -r '.openrouterApiKey // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
@@ -37,7 +37,7 @@ if [ -f "$SETTINGS_FILE" ]; then
   # Eğer settings'te varsa env'i override et (OAuth token öncelikli)
   [ -n "$CLAUDE_OAUTH_TOKEN_LOCAL" ] && export CLAUDE_CODE_OAUTH_TOKEN="$CLAUDE_OAUTH_TOKEN_LOCAL"
   [ -n "$ANTHROPIC_API_KEY_LOCAL" ] && export ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY_LOCAL"
-  [ -n "$ZAI_API_KEY_LOCAL" ] && export ZAI_API_KEY="$ZAI_API_KEY_LOCAL"
+  [ -n "$GEMINI_API_KEY_LOCAL" ] && export GEMINI_API_KEY="$GEMINI_API_KEY_LOCAL"
   [ -n "$GROK_API_KEY_LOCAL" ] && export GROK_API_KEY="$GROK_API_KEY_LOCAL"
   [ -n "$QWEN_API_KEY_LOCAL" ] && export QWEN_API_KEY="$QWEN_API_KEY_LOCAL"
   [ -n "$OPENROUTER_API_KEY_LOCAL" ] && export OPENROUTER_API_KEY="$OPENROUTER_API_KEY_LOCAL"
@@ -50,13 +50,13 @@ if ! command -v claude &> /dev/null; then
   exit 1
 fi
 
-# ─── Z.AI API helper ────────────────────────────────────────
-call_zai() {
+# ─── Gemini API helper ──────────────────────────────────────
+call_gemini() {
   local system_prompt="$1"
   local user_prompt="$2"
   local output_file="$3"
 
-  if [ -z "${ZAI_API_KEY:-}" ]; then
+  if [ -z "${GEMINI_API_KEY:-}" ]; then
     return 1
   fi
 
@@ -65,7 +65,7 @@ call_zai() {
     --arg sys "$system_prompt" \
     --arg usr "$user_prompt" \
     '{
-      model: "glm-5.1",
+      model: "gemini-3.5-flash",
       max_tokens: 8192,
       messages: [
         { role: "system", content: $sys },
@@ -75,8 +75,8 @@ call_zai() {
 
   local response
   response=$(curl -s -X POST \
-    "https://api.z.ai/api/coding/paas/v4/chat/completions" \
-    -H "Authorization: Bearer ${ZAI_API_KEY}" \
+    "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions" \
+    -H "Authorization: Bearer ${GEMINI_API_KEY}" \
     -H "Content-Type: application/json" \
     -d "$payload" 2>/dev/null)
 
@@ -440,9 +440,9 @@ run_step_smart() {
     log "Provider deneniyor: ${provider}"
 
     case "$provider" in
-      zai)
-        if call_zai "$system_prompt" "$kullanici_promptu" "$json_dosya"; then
-          kullanilan_provider="zai"
+      gemini)
+        if call_gemini "$system_prompt" "$kullanici_promptu" "$json_dosya"; then
+          kullanilan_provider="gemini"
           break
         fi
         ;;
@@ -539,7 +539,7 @@ log ""
 log "Mevcut API Keyleri:"
 log "  CLAUDE_OAUTH: $([ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && echo 'YÜKLENDİ (Max Plan)' || echo 'YOK')"
 log "  ANTHROPIC: $([ -n "${ANTHROPIC_API_KEY:-}" ] && echo 'YÜKLENDİ' || echo 'YOK')"
-log "  Z.AI:      $([ -n "${ZAI_API_KEY:-}" ] && echo 'YÜKLENDİ' || echo 'YOK')"
+log "  GEMINI:    $([ -n "${GEMINI_API_KEY:-}" ] && echo 'YÜKLENDİ' || echo 'YOK')"
 log "  GROK:      $([ -n "${GROK_API_KEY:-}" ] && echo 'YÜKLENDİ' || echo 'YOK')"
 log "  QWEN:      $([ -n "${QWEN_API_KEY:-}" ] && echo 'YÜKLENDİ' || echo 'YOK')"
 log "  OPENROUTER:$([ -n "${OPENROUTER_API_KEY:-}" ] && echo 'YÜKLENDİ' || echo 'YOK')"
@@ -691,7 +691,7 @@ KALİTE KRİTERLERİ:
 - Gelir projeksiyonu (ilk yıl MRR hedefi)
 
 Önemli: Çıktıyı mutlaka ${WORKSPACE}/product-spec.md dosyasına yaz." \
-    "zai grok openrouter claude"
+    "gemini grok openrouter claude"
 
   # Post-processing: Non-Claude provider product-spec.md yazmaz
   if [ ! -f "${WORKSPACE}/product-spec.md" ] || [ ! -s "${WORKSPACE}/product-spec.md" ]; then

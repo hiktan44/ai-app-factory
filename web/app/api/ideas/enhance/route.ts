@@ -20,11 +20,11 @@ export async function POST(request: Request) {
     const research = await researchIdea(idea, category);
 
     // Hangi LLM kullanılacak?
-    const zaiKey = settings.zaiApiKey || process.env.ZAI_API_KEY || "";
+    const geminiKey = settings.geminiApiKey || process.env.GEMINI_API_KEY || "";
     const claudeKey = settings.anthropicApiKey || process.env.ANTHROPIC_API_KEY || "";
 
-    const provider = zaiKey ? "zai" : "claude";
-    const apiKey = provider === "zai" ? zaiKey : claudeKey;
+    const provider = geminiKey ? "gemini" : "claude";
+    const apiKey = provider === "gemini" ? geminiKey : claudeKey;
 
     if (!apiKey) {
       return NextResponse.json({ error: "LLM API key bulunamadı. Ayarlardan ekleyin." }, { status: 400 });

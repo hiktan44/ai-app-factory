@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateProductSpec } from "@/lib/zai";
+import { generateProductSpec } from "@/lib/gemini";
 import { getPipelineManager } from "@/lib/pipeline-manager";
 import type { IdeaProposal } from "@/lib/types";
 import fs from "fs";

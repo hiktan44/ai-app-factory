@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateIdea } from "@/lib/zai";
+import { generateIdea } from "@/lib/gemini";
 import { CATEGORIES } from "@/lib/constants";
 import { researchTrends } from "@/lib/trend-researcher";
 
