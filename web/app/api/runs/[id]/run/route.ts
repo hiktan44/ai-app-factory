@@ -1,172 +1,207 @@
 import { NextResponse } from "next/server";
 import { getRunDir } from "@/lib/file-utils";
-import { readSettings } from "@/lib/settings";
-import { deployToVercel } from "@/lib/vercel-deployer";
-import { deployGeneratedApp } from "@/lib/coolify-deployer";
 import fs from "fs";
 import path from "path";
+import net from "net";
+import { spawn, execSync } from "child_process";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
 interface RunResult {
-    success: boolean;
-    url?: string;
-    source?: "cached" | "fresh";
-    target?: "vercel" | "coolify" | "github";
-    githubRepoUrl?: string;
-    message?: string;
-    error?: string;
-    details?: string;
-  }
+  success: boolean;
+  url?: string;
+  source?: "cached" | "fresh";
+  message?: string;
+  error?: string;
+  details?: string;
+}
+
+/**
+ * Dinamik olarak kullanılabilir boş bir port bulur
+ */
+async function findFreePort(startPort = 3001): Promise<number> {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.listen(startPort, () => {
+      server.once("close", () => resolve(startPort));
+      server.close();
+    });
+    server.on("error", () => {
+      resolve(findFreePort(startPort + 1));
+    });
+  });
+}
+
+/**
+ * Belirtilen portun aktif olarak dinlenip dinlenmediğini kontrol eder
+ */
+async function isPortActive(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = net.createConnection({ port, host: "127.0.0.1" });
+    socket.on("connect", () => {
+      socket.end();
+      resolve(true);
+    });
+    socket.on("error", () => {
+      resolve(false);
+    });
+  });
+}
 
 /**
  * POST /api/runs/[id]/run
+ * GET /api/runs/[id]/run
  *
- * "Uygulamayi Calistir" / "Run app" endpoint.
- *
- * Strategy:
- *  - If a previous deploy result exists in deploy/deploy-result.json with a usable URL, return it (cached).
- *  - Otherwise, trigger a fresh deploy (Vercel preferred, Coolify fallback, GitHub-only as last resort)
- *    and persist the result so subsequent calls are instant.
- *
- * GET /api/runs/[id]/run also supported for convenience (idempotent read).
+ * Uygulamayı yerel makinede (localhost) çalıştırır ve dev server URL'ini döner.
  */
 export async function POST(
-    request: Request,
-    { params }: { params: Promise<{ id: string }> },
-  ) {
-    const { id } = await params;
-    const url = new URL(request.url);
-    const force = url.searchParams.get("force") === "1";
-    return runApp(id, force);
-  }
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  return runApp(id);
+}
 
 export async function GET(
-    request: Request,
-    { params }: { params: Promise<{ id: string }> },
-  ) {
-    const { id } = await params;
-    const url = new URL(request.url);
-    const force = url.searchParams.get("force") === "1";
-    return runApp(id, force);
-  }
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  return runApp(id);
+}
 
-async function runApp(id: string, force: boolean): Promise<NextResponse<RunResult>> {
+async function runApp(id: string): Promise<NextResponse<RunResult>> {
+  try {
+    const runDir = getRunDir(id);
+    const appDir = path.join(runDir, "app");
+
+    if (!fs.existsSync(appDir)) {
+      return NextResponse.json(
+        { success: false, error: "App dizini bulunamadı — pipeline tamamlanmamış olabilir" },
+        { status: 404 },
+      );
+    }
+
+    const pidPath = path.join(appDir, "local-dev.pid");
+    const portPath = path.join(appDir, "local-dev.port");
+
+    // 1) Halihazırda çalışan bir dev server var mı?
+    if (fs.existsSync(pidPath) && fs.existsSync(portPath)) {
+      try {
+        const pid = parseInt(fs.readFileSync(pidPath, "utf-8").trim(), 10);
+        const port = parseInt(fs.readFileSync(portPath, "utf-8").trim(), 10);
+
+        // Process'in yaşayıp yaşamadığını kontrol et (signal 0)
+        let isRunning = false;
+        try {
+          process.kill(pid, 0);
+          isRunning = true;
+        } catch {
+          isRunning = false;
+        }
+
+        // Port da aktifse direkt mevcut adresi dön
+        if (isRunning && (await isPortActive(port))) {
+          return NextResponse.json({
+            success: true,
+            url: `http://localhost:${port}`,
+            source: "cached",
+            message: "Uygulama zaten yerelde çalışıyor",
+          });
+        }
+      } catch (e) {
+        // ignore parse/kill errors, fall through to start
+      }
+    }
+
+    // 2) Yeni dev server başlat
+    const port = await findFreePort(3001);
+
+    // Bağımlılıkların kurulu olduğundan emin ol
+    const nodeModulesPath = path.join(appDir, "node_modules");
+    if (!fs.existsSync(nodeModulesPath)) {
+      console.log(`[Local Run] node_modules bulunamadı. Kuruluyor: ${appDir}`);
+      try {
+        execSync("pnpm install", { cwd: appDir, stdio: "ignore" });
+      } catch (err) {
+        console.warn("[Local Run] pnpm install başarısız oldu, npm ile deneniyor...", err);
+        try {
+          execSync("npm install", { cwd: appDir, stdio: "ignore" });
+        } catch (npmErr) {
+          return NextResponse.json(
+            { success: false, error: "Bağımlılıklar kurulamadı (pnpm/npm install başarısız)" },
+            { status: 500 },
+          );
+        }
+      }
+    }
+
+    // Sunucuyu arka planda (detached) başlat
+    console.log(`[Local Run] Dev server başlatılıyor. Port: ${port}`);
+    const logFile = path.join(appDir, "local-dev.log");
+    const logStream = fs.createWriteStream(logFile, { flags: "a" });
+
+    // pnpm run dev komutunu çalıştır
+    const child = spawn("pnpm", ["run", "dev", "--port", String(port)], {
+      cwd: appDir,
+      env: { ...process.env, PORT: String(port) },
+      detached: true,
+      stdio: ["ignore", logStream, logStream],
+    });
+
+    child.unref(); // Ebeveyn Next.js sürecinden bağımsızlaştır
+
+    if (child.pid) {
+      fs.writeFileSync(pidPath, String(child.pid));
+      fs.writeFileSync(portPath, String(port));
+    } else {
+      return NextResponse.json(
+        { success: false, error: "Dev server süreci başlatılamadı" },
+        { status: 500 },
+      );
+    }
+
+    // Sunucunun hazır olmasını bekle (max 15 saniye)
+    let ready = false;
+    for (let i = 0; i < 15; i++) {
+      if (await isPortActive(port)) {
+        ready = true;
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+
+    if (ready) {
+      return NextResponse.json({
+        success: true,
+        url: `http://localhost:${port}`,
+        source: "fresh",
+        message: "Uygulama başarıyla yerelde başlatıldı",
+      });
+    }
+
+    // Başlatılamadıysa log dosyasından hata detayını okumaya çalış
+    let errorDetails = "";
     try {
-          const runDir = getRunDir(id);
-          const appDir = path.join(runDir, "app");
+      if (fs.existsSync(logFile)) {
+        errorDetails = fs.readFileSync(logFile, "utf-8").slice(-500);
+      }
+    } catch { /* ignore */ }
 
-          if (!fs.existsSync(appDir)) {
-                  return NextResponse.json(
-                            { success: false, error: "App dizini bulunamadi - pipeline tamamlanmamis olabilir" },
-                            { status: 404 },
-                          );
-                }
-
-          const deployDir = path.join(runDir, "deploy");
-          const resultPath = path.join(deployDir, "deploy-result.json");
-
-          // 1) Cached result?
-          if (!force && fs.existsSync(resultPath)) {
-                  try {
-                            const cached = JSON.parse(fs.readFileSync(resultPath, "utf-8"));
-                            const cachedUrl: string | undefined =
-                              cached.deploymentUrl || cached.url || cached.deployUrl;
-                            if (cached.success && cachedUrl) {
-                                        return NextResponse.json({
-                                                      success: true,
-                                                      url: cachedUrl,
-                                                      source: "cached",
-                                                      target: cached.target,
-                                                      githubRepoUrl: cached.githubRepoUrl,
-                                                      message: "Mevcut deploy URL'i kullaniliyor",
-                                                    });
-                                      }
-                          } catch {
-                            // ignore parse errors, fall through to fresh deploy
-                          }
-                }
-
-          // 2) Fresh deploy - try Vercel -> Coolify -> GitHub-only
-          const settings = readSettings();
-          if (!settings.githubToken) {
-                  return NextResponse.json(
-                            {
-                                        success: false,
-                                        error: "GitHub token ayarlanmamis. /settings sayfasindan ekleyin.",
-                                      },
-                            { status: 400 },
-                          );
-                }
-
-          // Resolve app name
-          let appName = id;
-          const specPath = path.join(runDir, "product-spec.md");
-          if (fs.existsSync(specPath)) {
-                  const spec = fs.readFileSync(specPath, "utf-8");
-                  const m = spec.match(/^#\s+(.+)/m);
-                                             if (m) appName = m[1].trim();
-                                           }
-
-                                           const vercelToken = process.env.VERCEL_TOKEN || settings.vercelToken || "";
-                                           const hasCoolify = !!(settings.coolifyApiUrl && settings.coolifyApiToken);
-
-                                           let result: Record<string, unknown> = {};
-                                           let target: "vercel" | "coolify" | "github" = "github";
-
-                                           if (vercelToken) {
-                                                   target = "vercel";
-                                                   result = await deployToVercel({ appName, runId: id, appDir }) as unknown as Record<string, unknown>;
-                                                 } else if (hasCoolify) {
-                                                   target = "coolify";
-                                                   result = await deployGeneratedApp({ appName, runId: id, appDir }) as unknown as Record<string, unknown>;
-                                                 } else {
-                                                   target = "github";
-                                                   result = await deployGeneratedApp({ appName, runId: id, appDir }) as unknown as Record<string, unknown>;
-                                                 }
-
-                                           // Persist result
-                                           if (!fs.existsSync(deployDir)) {
-                                                   fs.mkdirSync(deployDir, { recursive: true });
-                                                 }
-                                           fs.writeFileSync(
-                                                   resultPath,
-                                                   JSON.stringify({ ...result, target, runAt: new Date().toISOString() }, null, 2),
-                                                 );
-
-                                           const deployedUrl =
-                                             (result.deploymentUrl as string | undefined) ||
-                                             (result.url as string | undefined) ||
-                                             (result.deployUrl as string | undefined);
-
-                                           if (result.success && deployedUrl) {
-                                                   return NextResponse.json({
-                                                             success: true,
-                                                             url: deployedUrl,
-                                                             source: "fresh",
-                                                             target,
-                                                             githubRepoUrl: result.githubRepoUrl as string | undefined,
-                                                             message: "Uygulama deploy edildi",
-                                                           });
-                                                 }
-
-                                           return NextResponse.json(
-                                                   {
-                                                             success: false,
-                                                             target,
-                                                             githubRepoUrl: result.githubRepoUrl as string | undefined,
-                                                             error: (result.error as string) || "Deploy basarisiz oldu",
-                                                             details: typeof result === "object" ? JSON.stringify(result).slice(0, 800) : undefined,
-                                                           },
-                                                   { status: 502 },
-                                                 );
-                                         } catch (error) {
-                                               console.error("Run app failed:", error);
-                                               return NextResponse.json(
-                                                       { success: false, error: "Run app islemi basarisiz", details: String(error) },
-                                                       { status: 500 },
-                                                     );
-                                             }
-                                       }
-                                       
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Dev sunucusu 15 saniye içinde yanıt vermedi",
+        details: errorDetails || "Detaylar için local-dev.log dosyasını kontrol edin.",
+      },
+      { status: 502 },
+    );
+  } catch (error) {
+    console.error("Run app failed:", error);
+    return NextResponse.json(
+      { success: false, error: "Uygulama çalıştırılamadı", details: String(error) },
+      { status: 500 },
+    );
+  }
+}

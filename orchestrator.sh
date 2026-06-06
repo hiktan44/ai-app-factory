@@ -994,6 +994,7 @@ if [ "$BUILD_SUCCESS" = true ] && [ -d "${WORKSPACE}/app" ]; then
     PORT=${LOCAL_PORT} nohup pnpm run dev --port ${LOCAL_PORT} > local-dev.log 2>&1 &
     DEV_PID=$!
     echo $DEV_PID > local-dev.pid
+    echo $LOCAL_PORT > local-dev.port
     
     log "Sunucu başlatıldı (PID: ${DEV_PID}). Hazır olması bekleniyor..."
     

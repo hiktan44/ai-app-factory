@@ -92,10 +92,10 @@ export default function RunDetailPage({
                           setLivePreviewUrl(fullUrl);
                           window.open(fullUrl, "_blank", "noopener");
                           setDeployMessage(
-                                      data.source === "cached"
-                                        ? `Uygulama hazir: ${fullUrl}`
-                                        : `Uygulama deploy edildi: ${fullUrl}`,
-                                    );
+                              data.source === "cached"
+                                ? `Uygulama yerelde hazır: ${fullUrl}`
+                                : `Uygulama yerelde başarıyla başlatıldı: ${fullUrl}`,
+                            );
                 } else {
                           setDeployMessage(`Uygulama baslatilamadi: ${data.error || "bilinmeyen hata"}`);
                 }
