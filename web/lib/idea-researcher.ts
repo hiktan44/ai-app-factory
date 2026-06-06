@@ -277,7 +277,7 @@ Yukarıdaki araştırma verilerini kullanarak bu fikri geliştir ve JSON döndü
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gemini-1.5-flash",
+          model: "gemini-2.5-flash",
           max_tokens: 2048,
           messages: [
             { role: "system", content: systemPrompt },

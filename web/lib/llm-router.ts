@@ -32,10 +32,10 @@ export const LLM_CONFIGS: Record<LLMProvider, LLMConfig> = {
   },
   gemini: {
     provider: "gemini",
-    model: "gemini-1.5-flash",
+    model: "gemini-2.5-flash",
     apiKeyEnvVar: "GEMINI_API_KEY",
     settingsKey: "geminiApiKey",
-    label: "Gemini 1.5 Flash",
+    label: "Gemini 2.5 Flash",
     description: "Hızlı ve güçlü - araştırma ve analiz için",
     costTier: "cheap",
     capabilities: ["research", "analysis", "code", "text"],
@@ -189,7 +189,7 @@ async function callClaude(apiKey: string, systemPrompt: string, userPrompt: stri
 }
 
 async function callGemini(apiKey: string, systemPrompt: string, userPrompt: string, maxTokens: number): Promise<string> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
   const res = await fetch(url, {
     method: "POST",

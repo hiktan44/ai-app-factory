@@ -757,7 +757,7 @@ Aşağıdaki JSON formatında SADECE JSON döndür (başka hiçbir şey yazma):
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.9,
       top_p: 0.95,
