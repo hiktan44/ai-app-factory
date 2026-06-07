@@ -886,7 +886,11 @@ if [ "$CLAUDE_AUTH_METHOD" = "none" ]; then
   log "  Claude CLI bağlantı testi ile kontrol edilecek (claude login ile giriş yapılmış olabilir)."
 fi
 
-# 3. Bağlantı testi — her zaman yap
+# 3. Bağlantı testi — DRY_RUN modunda atla
+if [ "${DRY_RUN:-0}" = "1" ]; then
+  CLAUDE_CLI_OK=true
+  log "  Dry-run aktif — Claude CLI bağlantı testi atlanıyor."
+else
 
   log "  Claude CLI bağlantı testi yapılıyor..."
   local_test_file="${WORKSPACE}/logs/preflight-test.json"
@@ -988,6 +992,7 @@ fi
       fi
     fi
   fi
+fi  # DRY_RUN else bloğu
 
 log "Claude CLI durumu: $([ "$CLAUDE_CLI_OK" = true ] && echo 'HAZIR ✓' || echo 'SORUNLU ✗')"
 log ""
