@@ -279,11 +279,8 @@ RUNNER_EOF
     chmod +x "${runner_script}"
     chown factory:factory "${prompt_file}" "${sysprompt_file}" "${runner_script}" 2>/dev/null || true
 
-    # OAuth token varsa API key'i geçirme (CLI API key'i öncelikli kullanıyor)
-    local claude_api_key_for_gosu=""
-    if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
-      claude_api_key_for_gosu="${ANTHROPIC_API_KEY:-}"
-    fi
+    # API key her durumda geçirilsin (CLI kendi öncelik kurallarını işletir)
+    local claude_api_key_for_gosu="${ANTHROPIC_API_KEY:-}"
 
     HOME=/home/factory \
     ANTHROPIC_API_KEY="${claude_api_key_for_gosu}" \
@@ -584,10 +581,8 @@ RUNNER_EOF
     chmod +x "${runner_script}"
     chown factory:factory "${prompt_file}" "${sysprompt_file}" "${runner_script}" 2>/dev/null || true
 
-    local _gosu_api_key=""
-    if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
-      _gosu_api_key="${ANTHROPIC_API_KEY:-}"
-    fi
+    # API key her durumda geçirilsin (CLI kendi öncelik kurallarını işletir)
+    local _gosu_api_key="${ANTHROPIC_API_KEY:-}"
 
     HOME=/home/factory \
     ANTHROPIC_API_KEY="${_gosu_api_key}" \
