@@ -1087,7 +1087,7 @@ fi
 
 adim_baslik "MİMARİ (Tasarım)"
 
-# Claude zorunlu — mimari dosyaları dosya sisteme yazar
+# Claude öncelikli — başarısız olursa Gemini ve OpenRouter fallback
 run_step_smart "architecture" \
   "${PROMPTS_DIR}/architecture.md" \
   "Workspace dizini: ${WORKSPACE}
@@ -1105,7 +1105,7 @@ Görev:
    - component_tree.md
    - dependencies.json
    - tech_decisions.md" \
-  "claude"
+  "claude gemini-pro openrouter gemini"
 
 if [ "${DRY_RUN:-0}" = "1" ]; then
   mkdir -p "${WORKSPACE}/architecture"
@@ -1127,7 +1127,7 @@ fi
 # ─── ADIM 3: ARAYÜZ TASARIMI (Stitch) ────────────────────────
 adim_baslik "ARAYÜZ TASARIMI (Stitch)"
 
-# Claude zorunlu — Stitch MCP araçlarını kullanmak için
+# Claude öncelikli — başarısız olursa Gemini fallback
 run_step_smart "frontend" \
   "${PROMPTS_DIR}/frontend.md" \
   "Workspace dizini: ${WORKSPACE}
@@ -1140,13 +1140,13 @@ Görev:
 2. Stitch MCP araçlarını otonom olarak kullanarak projeyi oluştur, tasarım sistemini uygula ve ekran tasarımlarını (Landing Page, Dashboard vb.) hazırla
 3. Üretilen ekranların kodlarını alan ${WORKSPACE}/app dizinine entegre et
 4. İşlem tamamlandığında ${WORKSPACE}/architecture/frontend_build_report.json dosyasını oluştur" \
-  "claude"
+  "claude gemini-pro openrouter gemini"
 
 # ─── ADIM 4: KODLAMA ─────────────────────────────────────────
 
 adim_baslik "KODLAMA (Build)"
 
-# Claude zorunlu — kod kalitesi için
+# Claude öncelikli — başarısız olursa Gemini ve OpenRouter fallback
 run_step_smart "build" \
   "${PROMPTS_DIR}/build.md" \
   "Workspace dizini: ${WORKSPACE}
@@ -1168,7 +1168,7 @@ Görev:
 6. Dashboard ve app kısmını /dashboard route'unda oluştur
 7. Kodlama bitince ${WORKSPACE}/app/ dizininde 'pnpm run build' çalıştır
 8. Her dosyayı yazarken import/export tutarlılığını kontrol et" \
-  "claude"
+  "claude gemini-pro openrouter gemini"
 
 # ─── ADIM 4: DOĞRULAMA ───────────────────────────────────────
 
@@ -1198,7 +1198,7 @@ Görev:
 3. Hata varsa analiz et ve düzelt
 4. Build başarılı olursa ${WORKSPACE}/build-status.txt dosyasına 'BUILD_SUCCESS' yaz
 5. Bu ${verify_attempt}. deneme, toplam ${MAX_VERIFY_ATTEMPTS} hakkın var" \
-    "claude" \
+    "claude gemini-pro openrouter gemini" \
     "${devam_flag}" || true
 
   json_log="${WORKSPACE}/logs/verify_fix_${verify_attempt}.json"

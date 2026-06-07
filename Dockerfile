@@ -31,7 +31,8 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Runtime tools (orchestrator.sh needs tzdata, bash, jq, curl; Coolify healthcheck needs wget)
-RUN apk add --no-cache bash jq curl wget tzdata
+# gosu: root → factory user geçişi için (claude --dangerously-skip-permissions)
+RUN apk add --no-cache bash jq curl wget tzdata gosu
 
 # Set timezone
 ENV TZ=Europe/Istanbul
@@ -42,6 +43,10 @@ RUN corepack enable && npm install -g @anthropic-ai/claude-code
 
 # Create non-root user (claude --dangerously-skip-permissions requires non-root)
 RUN addgroup -g 1001 -S factory && adduser -u 1001 -S factory -G factory
+
+# Create factory home and claude config directory
+RUN mkdir -p /home/factory/.claude /home/factory/.config \
+    && chown -R factory:factory /home/factory
 
 # Copy standalone output
 COPY --from=builder /app/.next/standalone ./
@@ -57,11 +62,14 @@ RUN chmod +x /factory/orchestrator.sh
 # Factory runs directory (persistent volume mount point)
 RUN mkdir -p /factory/runs
 
+# Entrypoint: Claude auth setup + app start
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 # Set ownership for non-root user
 RUN chown -R factory:factory /app /factory
 
-USER factory
-
 EXPOSE 3000
 
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["node", "server.js"]
