@@ -1,20 +1,45 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useAuth } from '@/lib/auth/AuthProvider';
+import { cn } from '@/lib/utils';
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: "📊", description: "Genel bakış" },
-  { href: "/idea-lab", label: "Idea Lab", icon: "💡", description: "Fikir araştır & geliştir" },
-  { href: "/new", label: "Yeni Proje", icon: "🚀", description: "Kategoriden başlat" },
-  { href: "/runs", label: "Pipeline'lar", icon: "⚡", description: "Tüm çalıştırmalar" },
-  { href: "/prompts", label: "Promptlar", icon: "📝", description: "Prompt editörü" },
-  { href: "/settings", label: "Ayarlar", icon: "⚙️", description: "API & Deploy" },
+  { href: '/', label: 'Dashboard', icon: '📊', description: 'Genel bakış', requiredRole: null },
+  { href: '/idea-lab', label: 'Idea Lab', icon: '💡', description: 'Fikir araştır & geliştir', requiredRole: null },
+  { href: '/new', label: 'Yeni Proje', icon: '🚀', description: 'Kategoriden başlat', requiredRole: 'viewer' },
+  { href: '/runs', label: "Pipeline'lar", icon: '⚡', description: 'Tüm çalıştırmalar', requiredRole: 'viewer' },
+  { href: '/prompts', label: 'Promptlar', icon: '📝', description: 'Prompt editörü', requiredRole: 'editor' },
+  { href: '/settings', label: 'Ayarlar', icon: '⚙️', description: 'API & Deploy', requiredRole: 'admin' },
+  { href: '/admin', label: 'Yönetici', icon: '👤', description: 'Kullanıcı & Rol yönetimi', requiredRole: 'super_admin' },
 ];
+
+// Role hierarchy for permission checking
+const roleHierarchy: Record<string, number> = {
+  viewer: 10,
+  editor: 25,
+  admin: 50,
+  super_admin: 100,
+};
+
+function hasRequiredRole(userRole: string | null, requiredRole: string | null): boolean {
+  if (!requiredRole) return true;
+  if (!userRole) return false;
+  return (roleHierarchy[userRole] || 0) >= (roleHierarchy[requiredRole] || 0);
+}
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user } = useAuth();
+
+  // Get user's highest role
+  const userRoleSlug = user?.roles?.[0]?.slug || null;
+
+  // Filter nav items based on user role
+  const accessibleNavItems = navItems.filter((item) =>
+    hasRequiredRole(userRoleSlug, item.requiredRole)
+  );
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-edge bg-surface-secondary hidden md:flex flex-col">
@@ -35,26 +60,26 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map((item) => {
+        {accessibleNavItems.map((item) => {
           const isActive = pathname === item.href ||
-            (item.href !== "/" && pathname.startsWith(item.href));
+            (item.href !== '/' && pathname.startsWith(item.href));
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 group",
+                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 group',
                 isActive
-                  ? "bg-brand-subtle text-brand-hover border border-brand/20"
-                  : "text-content-secondary hover:bg-surface-hover hover:text-content"
+                  ? 'bg-brand-subtle text-brand-hover border border-brand/20'
+                  : 'text-content-secondary hover:bg-surface-hover hover:text-content'
               )}
             >
               <span className="text-lg">{item.icon}</span>
               <div>
                 <div className="font-medium">{item.label}</div>
                 <div className={cn(
-                  "text-[10px] leading-tight",
-                  isActive ? "text-brand-hover/60" : "text-content-muted"
+                  'text-[10px] leading-tight',
+                  isActive ? 'text-brand-hover/60' : 'text-content-muted'
                 )}>
                   {item.description}
                 </div>

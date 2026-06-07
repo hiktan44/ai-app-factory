@@ -107,6 +107,32 @@ cat > /factory/settings.json <<ENDJSON
 ENDJSON
 echo "[entrypoint] settings.json env'den oluşturuldu (maxTurns=${EXISTING_MAX_TURNS}, maxConcurrent=${EXISTING_MAX_CONCURRENT})."
 
+# --- Claude CLI credentials kurulumu (Refresh token ve persistent saklama desteği) ---
+CLAUDE_DIR="/factory/.claude"
+mkdir -p "$CLAUDE_DIR"
+
+if [ -n "${FINAL_CLAUDE_OAUTH:-}" ]; then
+  echo "[entrypoint] Claude OAuth token tespit edildi, credentials dosyaları hazırlanıyor..."
+  
+  if echo "${FINAL_CLAUDE_OAUTH}" | grep -q "^[[:space:]]*{"; then
+    # Zaten JSON formatında (Keychain'den alınan tam çıktı)
+    CRED_JSON="${FINAL_CLAUDE_OAUTH}"
+    echo "[entrypoint] OAuth JSON formatında yüklendi (Refresh Token desteği aktif)"
+  else
+    # Düz token string'i, JSON sarmalına al
+    CRED_JSON="{\"claudeAiOauth\": {\"accessToken\": \"${FINAL_CLAUDE_OAUTH}\", \"expiresAt\": 1999999999999}}"
+    echo "[entrypoint] UYARI: OAuth düz text formatında yüklendi (Refresh Token desteği yok)"
+  fi
+  
+  # Birden fazla olası path için dosyaları hazırla (CLI sürüm esnekliği)
+  echo "${CRED_JSON}" > "$CLAUDE_DIR/.credentials.json"
+  echo "${CRED_JSON}" > "$CLAUDE_DIR.json"
+  echo "${CRED_JSON}" > "$CLAUDE_DIR/claude.json"
+  chmod 600 "$CLAUDE_DIR/.credentials.json" "$CLAUDE_DIR.json" "$CLAUDE_DIR/claude.json" 2>/dev/null || true
+  
+  echo "[entrypoint] ✓ Claude credentials dosyaları yazıldı ($CLAUDE_DIR/.credentials.json)"
+fi
+
 # --- /factory dizini izinleri (factory kullanıcısı Claude CLI için gerekli) ---
 chown -R factory:factory /factory 2>/dev/null || true
 echo "[entrypoint] /factory izinleri factory kullanıcısına verildi."

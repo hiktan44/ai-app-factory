@@ -4,28 +4,41 @@ import { useState } from 'react';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { useRouter } from 'next/navigation';
 
-export default function LoginPage() {
-  const { signIn, signInWithOAuth, loading } = useAuth();
+export default function SignUpPage() {
+  const { signUp, signInWithOAuth, loading } = useAuth();
   const router = useRouter();
   
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!email || !password) return;
+    
+    if (password !== confirmPassword) {
+      setError('Şifreler eşleşmiyor');
+      return;
+    }
+
+    if (password.length < 8) {
+      setError('Şifre en az 8 karakter olmalı');
+      return;
+    }
     
     setIsSubmitting(true);
     setError('');
     
     try {
-      await signIn(email, password);
-      router.push('/');
-      router.refresh();
+      await signUp(email, password, fullName);
+      setSuccess(true);
     } catch (err: any) {
-      setError(err.message || 'Giriş başarısız');
+      setError(err.message || 'Kayıt başarısız');
     } finally {
       setIsSubmitting(false);
     }
@@ -35,7 +48,7 @@ export default function LoginPage() {
     try {
       await signInWithOAuth(provider);
     } catch (err: any) {
-      setError(`${provider} ile giriş başarısız`);
+      setError(`${provider} ile kayıt başarısız`);
     }
   };
 
@@ -43,6 +56,32 @@ export default function LoginPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0a0f1d]">
         <div className="text-slate-400">Yükleniyor...</div>
+      </div>
+    );
+  }
+
+  if (success) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0a0f1d] px-4 font-sans text-slate-200">
+        <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60 p-8 shadow-2xl backdrop-blur-xl">
+          <div className="text-center">
+            <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10 text-green-400 mb-4 border border-green-500/20">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">Kayıt Başarılı!</h2>
+            <p className="text-slate-400 mb-6">
+              E-posta adresinize bir doğrulama linki gönderdik. Lütfen e-postanızı kontrol edin.
+            </p>
+            <button
+              onClick={() => router.push('/login')}
+              className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-3 text-sm font-semibold text-white"
+            >
+              Giriş Sayfasına Dön
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -67,10 +106,10 @@ export default function LoginPage() {
             </svg>
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
-            AI App Factory
+            Kayıt Ol
           </h1>
           <p className="mt-2 text-sm text-slate-400">
-            Otonom Uygulama Üretim Paneli
+            AI App Factory'a hoş geldiniz
           </p>
         </div>
 
@@ -109,8 +148,21 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Login Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Sign Up Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+              Ad Soyam (opsiyonel)
+            </label>
+            <input
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="w-full rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-white placeholder-slate-600 transition-all focus:border-indigo-500/80 focus:outline-none focus:ring-1 focus:ring-indigo-500/80"
+              placeholder="Adınız Soyadınız"
+            />
+          </div>
+
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
               E-posta
@@ -135,9 +187,25 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-white placeholder-slate-600 transition-all focus:border-indigo-500/80 focus:outline-none focus:ring-1 focus:ring-indigo-500/80"
-              placeholder="••••••••"
+              placeholder="En az 8 karakter"
               required
-              autoComplete="current-password"
+              minLength={8}
+              autoComplete="new-password"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+              Şifre Tekrar
+            </label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-white placeholder-slate-600 transition-all focus:border-indigo-500/80 focus:outline-none focus:ring-1 focus:ring-indigo-500/80"
+              placeholder="Şifrenizi tekrar girin"
+              required
+              autoComplete="new-password"
             />
           </div>
 
@@ -152,15 +220,15 @@ export default function LoginPage() {
             disabled={isSubmitting}
             className="relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
           >
-            {isSubmitting ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+            {isSubmitting ? 'Kayıt yapılıyor...' : 'Kayıt Ol'}
           </button>
         </form>
 
-        {/* Sign Up Link */}
+        {/* Login Link */}
         <div className="mt-6 text-center text-sm text-slate-400">
-          Hesabınız yok mu?{' '}
-          <a href="/signup" className="text-indigo-400 hover:text-indigo-300 font-medium">
-            Kayıt ol
+          Zaten hesabınız var mı?{' '}
+          <a href="/login" className="text-indigo-400 hover:text-indigo-300 font-medium">
+            Giriş yapın
           </a>
         </div>
       </div>

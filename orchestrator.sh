@@ -79,6 +79,19 @@ if [ -f "$SETTINGS_FILE" ]; then
   [ -n "$OPENROUTER_API_KEY_LOCAL" ] && export OPENROUTER_API_KEY="$OPENROUTER_API_KEY_LOCAL"
 fi
 
+# ─── Claude CONFIG ve credentials dizini ayarları ──────────────────
+export CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-/factory/.claude}"
+
+# Eğer kalıcı kimlik doğrulama dosyası varsa, ortamdaki statik token'ı kaldırarak
+# Claude'un otomatik token tazeleme (refresh) mekanizmasını kullanmasını sağlayalım
+if ([ -f "${CLAUDE_CONFIG_DIR}/.credentials.json" ] && jq -e '.claudeAiOauth' "${CLAUDE_CONFIG_DIR}/.credentials.json" &>/dev/null 2>&1) || \
+   ([ -f "${CLAUDE_CONFIG_DIR}/claude.json" ] && jq -e '.oauthToken' "${CLAUDE_CONFIG_DIR}/claude.json" &>/dev/null 2>&1) || \
+   ([ -f "${CLAUDE_CONFIG_DIR}.json" ] && jq -e '.claudeAiOauth // .oauthToken' "${CLAUDE_CONFIG_DIR}.json" &>/dev/null 2>&1); then
+  unset CLAUDE_CODE_OAUTH_TOKEN
+  CLAUDE_OAUTH_TOKEN_LOCAL=""
+  log "  Kalıcı Claude credentials dosyası tespit edildi, statik token env'den kaldırıldı (otomatik refresh aktif)."
+fi
+
 # ─── Claude CLI doğrulama ────────────────────────────────────
 if ! command -v claude &> /dev/null; then
   echo "HATA: 'claude' komutu bulunamadı."
@@ -289,6 +302,7 @@ RUNNER_EOF
     local claude_api_key_for_gosu="${ANTHROPIC_API_KEY:-}"
 
     HOME=/home/factory \
+    CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-/factory/.claude}" \
     ANTHROPIC_API_KEY="${claude_api_key_for_gosu}" \
     CLAUDE_CODE_OAUTH_TOKEN="${CLAUDE_CODE_OAUTH_TOKEN:-}" \
     ANTHROPIC_AUTH_TOKEN="${ANTHROPIC_AUTH_TOKEN:-}" \
@@ -591,6 +605,7 @@ RUNNER_EOF
     local _gosu_api_key="${ANTHROPIC_API_KEY:-}"
 
     HOME=/home/factory \
+    CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-/factory/.claude}" \
     ANTHROPIC_API_KEY="${_gosu_api_key}" \
     CLAUDE_CODE_OAUTH_TOKEN="${CLAUDE_CODE_OAUTH_TOKEN:-}" \
     ANTHROPIC_AUTH_TOKEN="${ANTHROPIC_AUTH_TOKEN:-}" \
@@ -861,9 +876,16 @@ else
   log "HATA: Claude CLI bulunamadı!"
 fi
 
-# 2. Claude auth var mı? (OAuth token VEYA API key VEYA ~/.claude.json)
+# 2. Claude auth var mı? (OAuth token VEYA API key VEYA kalıcı credentials dosyası)
 CLAUDE_AUTH_METHOD="none"
-if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+if ([ -f "${CLAUDE_CONFIG_DIR}/.credentials.json" ] && jq -e '.claudeAiOauth' "${CLAUDE_CONFIG_DIR}/.credentials.json" &>/dev/null 2>&1) || \
+   ([ -f "${CLAUDE_CONFIG_DIR}/claude.json" ] && jq -e '.oauthToken' "${CLAUDE_CONFIG_DIR}/claude.json" &>/dev/null 2>&1) || \
+   ([ -f "${CLAUDE_CONFIG_DIR}.json" ] && jq -e '.claudeAiOauth // .oauthToken' "${CLAUDE_CONFIG_DIR}.json" &>/dev/null 2>&1); then
+  CLAUDE_AUTH_METHOD="claudejson"
+  log "  Kalıcı credentials dosyası bulundu (Claude CLI kendi taze oturumunu kullanacak)"
+  unset CLAUDE_CODE_OAUTH_TOKEN
+  CLAUDE_OAUTH_TOKEN_LOCAL=""
+elif [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
   CLAUDE_AUTH_METHOD="oauth"
   log "  CLAUDE_CODE_OAUTH_TOKEN: ...${CLAUDE_CODE_OAUTH_TOKEN: -8} (OAuth/Max Plan)"
 elif [ -n "${ANTHROPIC_API_KEY:-}" ]; then
@@ -876,7 +898,7 @@ else
     log "  ~/.claude.json kimlik doğrulaması bulundu (Claude CLI kendi oturumunu kullanacak)"
   else
     CLAUDE_AUTH_METHOD="none"
-    log "  UYARI: Ortam değişkenlerinde Claude kimlik doğrulaması yok."
+    log "  UYARI: Ortam değişkenlerinde veya kalıcı dosyalarda Claude kimlik doğrulaması yok."
     log "  Claude CLI kendi ~/.claude.json oturumunu deneyecek..."
   fi
 fi
@@ -906,6 +928,7 @@ else
       _preflight_api_key="${ANTHROPIC_API_KEY:-}"
     fi
     HOME=/home/factory \
+    CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-/factory/.claude}" \
     ANTHROPIC_API_KEY="${_preflight_api_key}" \
     CLAUDE_CODE_OAUTH_TOKEN="${CLAUDE_CODE_OAUTH_TOKEN:-}" \
     ANTHROPIC_AUTH_TOKEN="${ANTHROPIC_AUTH_TOKEN:-}" \
@@ -935,6 +958,7 @@ else
       
       if command -v gosu &>/dev/null && [ "$(id -u)" = "0" ]; then
         HOME=/home/factory \
+        CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-/factory/.claude}" \
         ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
         CLAUDE_CODE_OAUTH_TOKEN="" \
         ANTHROPIC_AUTH_TOKEN="" \

@@ -20,6 +20,7 @@ services:
       - NODE_ENV=production
       - TZ=Europe/Istanbul
       - PROJECT_ROOT=/factory
+      - CLAUDE_CONFIG_DIR=/factory/.claude
       - DATABASE_URL=${DATABASE_URL}
       - CLAUDE_CODE_OAUTH_TOKEN=${CLAUDE_CODE_OAUTH_TOKEN:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}

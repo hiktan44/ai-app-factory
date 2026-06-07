@@ -32,6 +32,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+ENV CLAUDE_CONFIG_DIR=/factory/.claude
 
 # Runtime tools (orchestrator.sh needs bash, jq, curl, gosu, bc)
 RUN apk add --no-cache bash jq curl git gosu bc
@@ -66,7 +67,7 @@ RUN chmod +x /app/entrypoint.sh
 # Factory data directories
 # /factory       → project root (volume mounted at runtime)
 # /factory/runs  → persisted via Coolify volume (survives redeploy)
-RUN mkdir -p /factory/runs /factory/prompts /factory/logs \
+RUN mkdir -p /factory/runs /factory/prompts /factory/logs /factory/.claude \
     && chown -R factory:factory /factory
 
 # NOT: VOLUME direktifi kaldırıldı — docker-compose'daki named volume yeterli.
