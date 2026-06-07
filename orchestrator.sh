@@ -634,13 +634,31 @@ run_step_smart() {
   local preferred_providers="${4:-claude}"  # Varsayılan: claude
   local ek_flagler="${5:-}"
 
+  local json_dosya="${WORKSPACE}/logs/${adim_adi}.json"
+
+  # Kaldığı yerden devam etme (Resume) kontrolü
+  if [ "${FORCE_RESTART:-0}" != "1" ] && [ -f "${json_dosya}" ] && [ -s "${json_dosya}" ]; then
+    if [ "${adim_adi}" = "build" ] || [[ "${adim_adi}" == verify_fix_* ]]; then
+      if [ -f "${WORKSPACE}/build-status.txt" ] && grep -q "BUILD_SUCCESS" "${WORKSPACE}/build-status.txt" 2>/dev/null; then
+        log "[RESUME] Bu adım daha önce başarıyla tamamlanmış, atlanıyor: ${adim_adi}"
+        return 0
+      else
+        log "[RESUME] Build başarılı bulunamadı, adım yeniden çalıştırılıyor: ${adim_adi}"
+        rm -f "${json_dosya}" 2>/dev/null || true
+      fi
+    else
+      log "[RESUME] Bu adım daha önce başarıyla tamamlanmış, atlanıyor: ${adim_adi}"
+      return 0
+    fi
+  fi
+
   log "Başlatılıyor: ${adim_adi} (providers: ${preferred_providers})"
   local baslangic=$(date +%s)
 
   # Kuru çalıştırma
   if [ "${DRY_RUN:-0}" = "1" ]; then
     log "[KURU ÇALIŞTIRMA] Atlanıyor: ${adim_adi}"
-    touch "${WORKSPACE}/logs/${adim_adi}.json"
+    touch "${json_dosya}"
     return 0
   fi
 
