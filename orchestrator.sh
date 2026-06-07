@@ -647,6 +647,46 @@ else
   fi
 
   if [ $local_test_exit -ne 0 ]; then
+    # FALLBACK DENEMESİ: Eğer OAuth token tanımlıysa ve hata alındıysa, API Key ile tekrar dene
+    if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+      log "  OAuth token bağlantı testi başarısız. ANTHROPIC_API_KEY ile fallback deneniyor..."
+      local_test_exit=0
+      
+      if command -v gosu &>/dev/null && [ "$(id -u)" = "0" ]; then
+        HOME=/home/factory \
+        ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
+        CLAUDE_CODE_OAUTH_TOKEN="" \
+        ANTHROPIC_AUTH_TOKEN="" \
+        ANTHROPIC_BASE_URL="${ANTHROPIC_BASE_URL:-}" \
+        ANTHROPIC_MODEL="${ANTHROPIC_MODEL:-}" \
+        CLAUDE_CODE_SKIP_ONBOARDING="1" \
+        CLAUDE_CODE_ENABLE_TELEMETRY="0" \
+        PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+        gosu factory claude -p "Say only: OK" \
+          --dangerously-skip-permissions \
+          --output-format json \
+          --max-turns 1 \
+          > "${local_test_file}" 2>"${local_test_stderr}" || local_test_exit=$?
+      else
+        ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
+        CLAUDE_CODE_OAUTH_TOKEN="" \
+        ANTHROPIC_AUTH_TOKEN="" \
+        claude -p "Say only: OK" \
+          --dangerously-skip-permissions \
+          --output-format json \
+          --max-turns 1 \
+          > "${local_test_file}" 2>"${local_test_stderr}" || local_test_exit=$?
+      fi
+      
+      if [ $local_test_exit -eq 0 ]; then
+        log "  API Key ile fallback testi BAŞARILI ✓ (OAuth token geçersiz olduğu için devre dışı bırakıldı)"
+        export CLAUDE_CODE_OAUTH_TOKEN=""
+        export ANTHROPIC_AUTH_TOKEN=""
+      fi
+    fi
+  fi
+
+  if [ $local_test_exit -ne 0 ]; then
     log "  UYARI: Claude CLI bağlantı testi başarısız (exit code: ${local_test_exit})"
     if [ -f "${local_test_stderr}" ] && [ -s "${local_test_stderr}" ]; then
       log "  stderr: $(cat "${local_test_stderr}" | head -5)"
