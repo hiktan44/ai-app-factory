@@ -12,12 +12,12 @@ export type GeminiModelTier = "pro" | "flash";
 
 const MODELS: Record<GeminiModelTier, { id: string; label: string }> = {
   pro: {
-    id: "gemini-2.5-pro",
-    label: "Gemini 2.5 Pro (Google)",
+    id: "gemini-3.1-pro",
+    label: "Gemini 3.1 Pro (Google)",
   },
   flash: {
-    id: "gemini-2.5-flash",
-    label: "Gemini 2.5 Flash (Google)",
+    id: "gemini-3.5-flash",
+    label: "Gemini 3.5 Flash (Google)",
   },
 };
 
