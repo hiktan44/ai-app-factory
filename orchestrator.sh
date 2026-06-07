@@ -43,6 +43,15 @@ if [ -f "${PROJECT_ROOT_TEMP}/web/.env.local" ]; then
   done < "${PROJECT_ROOT_TEMP}/web/.env.local"
 fi
 
+# Akıllı temizlik: Eğer .env dosyalarında aktif bir ANTHROPIC_API_KEY tanımlanmamışsa,
+# terminalin aktif oturumundaki eski proxy ve API key kalıntılarını temizle (Claude Max planına doğrudan bağlanabilmesi için)
+if ! grep -qE "^[[:space:]]*ANTHROPIC_API_KEY=" "${PROJECT_ROOT_TEMP}/web/.env.local" 2>/dev/null && \
+   ! grep -qE "^[[:space:]]*ANTHROPIC_API_KEY=" "${PROJECT_ROOT_TEMP}/.env" 2>/dev/null; then
+  unset ANTHROPIC_API_KEY
+  unset ANTHROPIC_AUTH_TOKEN
+  unset ANTHROPIC_BASE_URL
+fi
+
 if [ -f "$SETTINGS_FILE" ]; then
   # settings.json'dan keyler okunur (jq ile)
   CLAUDE_OAUTH_TOKEN_LOCAL=$(jq -r '.claudeOauthToken // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
