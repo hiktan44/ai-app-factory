@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
+# Saat dilimini Türkiye olarak ayarla
+export TZ="Europe/Istanbul"
+
 # ============================================================
 # AI App Factory v2.0 - Ana Orkestratör
 # Otonom uygulama üretim bandı - Multi-LLM routing
@@ -579,7 +582,7 @@ RUNNER_EOF
     CLAUDE_CODE_OAUTH_TOKEN="${CLAUDE_CODE_OAUTH_TOKEN:-}" \
     ANTHROPIC_AUTH_TOKEN="${ANTHROPIC_AUTH_TOKEN:-}" \
     ANTHROPIC_BASE_URL="${ANTHROPIC_BASE_URL:-}" \
-    ANTHROPIC_MODEL="claude-opus-4-8" \
+    ANTHROPIC_MODEL="claude-3-5-sonnet" \
     CLAUDE_CODE_SKIP_ONBOARDING="1" \
     CLAUDE_CODE_ENABLE_TELEMETRY="0" \
     PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
@@ -588,7 +591,7 @@ RUNNER_EOF
 
     rm -f "${prompt_file}" "${sysprompt_file}" "${runner_script}" 2>/dev/null || true
   else
-    ANTHROPIC_MODEL="claude-opus-4-8" claude -p "${user_prompt}" \
+    ANTHROPIC_MODEL="claude-3-5-sonnet" claude -p "${user_prompt}" \
       --append-system-prompt "${system_prompt}" \
       --dangerously-skip-permissions \
       --output-format json \
