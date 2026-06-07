@@ -55,6 +55,12 @@ if ! grep -qE "^[[:space:]]*ANTHROPIC_API_KEY=" "${PROJECT_ROOT_TEMP}/web/.env.l
   unset ANTHROPIC_BASE_URL
 fi
 
+# Güvenlik: Eğer CLAUDE_CODE_OAUTH_TOKEN env'de varsa ama boşsa temizle
+# (Yorum satırı haline getirilmiş token env'e yanlışlıkla export edildiyse)
+if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+  unset CLAUDE_CODE_OAUTH_TOKEN
+fi
+
 if [ -f "$SETTINGS_FILE" ]; then
   # settings.json'dan keyler okunur (jq ile)
   CLAUDE_OAUTH_TOKEN_LOCAL=$(jq -r '.claudeOauthToken // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
@@ -607,7 +613,45 @@ RUNNER_EOF
   fi
 
   if [ $exit_code -ne 0 ]; then
-    log "UYARI: Orkestratör API çağrısı exit code $exit_code verdi. Adım varsayılan olarak onaylandı."
+    log "UYARI: Claude Orkestratör başarısız (exit code $exit_code). Gemini fallback deneniyor..."
+    
+    # Gemini API ile değerlendirme yap (fallback)
+    if [ -n "${GEMINI_API_KEY:-}" ]; then
+      local gemini_payload
+      gemini_payload=$(jq -n \
+        --arg sys "$system_prompt" \
+        --arg usr "$user_prompt" \
+        '{
+          contents: [{ role: "user", parts: [{ text: $usr }] }],
+          systemInstruction: { parts: [{ text: $sys }] },
+          generationConfig: { temperature: 0.3, maxOutputTokens: 1024 }
+        }')
+      
+      local gemini_response
+      gemini_response=$(curl -s -X POST \
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}" \
+        -H "Content-Type: application/json" \
+        -d "$gemini_payload" 2>/dev/null)
+      
+      local gemini_text
+      gemini_text=$(echo "$gemini_response" | jq -r '.candidates[0].content.parts[0].text // empty' 2>/dev/null || echo "")
+      
+      if [ -n "$gemini_text" ]; then
+        log "Gemini Orkestratör Değerlendirmesi tamamlandı."
+        # Gemini'nin JSON çıktısını parse etmeye çalış
+        local approved_g
+        approved_g=$(echo "$gemini_text" | grep -o '"approved"\s*:\s*[a-z]*' | grep -o '[a-z]*$' || echo "true")
+        local action_g
+        action_g=$(echo "$gemini_text" | grep -o '"next_action"\s*:\s*"[A-Z]*"' | grep -o '[A-Z]*"$' | tr -d '"' || echo "PROCEED")
+        log "Gemini Değerlendirme: approved=${approved_g:-true}, action=${action_g:-PROCEED}"
+        if [ "${approved_g:-true}" = "false" ] || [ "${action_g:-PROCEED}" = "STOP" ]; then
+          return 1
+        fi
+        return 0
+      fi
+    fi
+    
+    log "UYARI: Tüm Orkestratör API çağrıları başarısız. Adım varsayılan olarak onaylandı."
     return 0
   fi
 
@@ -817,7 +861,7 @@ else
   log "HATA: Claude CLI bulunamadı!"
 fi
 
-# 2. Claude auth var mı? (OAuth token VEYA API key)
+# 2. Claude auth var mı? (OAuth token VEYA API key VEYA ~/.claude.json)
 CLAUDE_AUTH_METHOD="none"
 if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
   CLAUDE_AUTH_METHOD="oauth"
@@ -825,16 +869,25 @@ if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
 elif [ -n "${ANTHROPIC_API_KEY:-}" ]; then
   CLAUDE_AUTH_METHOD="apikey"
   log "  ANTHROPIC_API_KEY: ...${ANTHROPIC_API_KEY: -8} (API Key)"
+else
+  # ~/.claude.json dosyasından auth kontrol et
+  if [ -f "${HOME}/.claude.json" ] && jq -e '.oauthToken // .api_key' "${HOME}/.claude.json" &>/dev/null 2>&1; then
+    CLAUDE_AUTH_METHOD="claudejson"
+    log "  ~/.claude.json kimlik doğrulaması bulundu (Claude CLI kendi oturumunu kullanacak)"
+  else
+    CLAUDE_AUTH_METHOD="none"
+    log "  UYARI: Ortam değişkenlerinde Claude kimlik doğrulaması yok."
+    log "  Claude CLI kendi ~/.claude.json oturumunu deneyecek..."
+  fi
 fi
 
 if [ "$CLAUDE_AUTH_METHOD" = "none" ]; then
-  log "KRİTİK HATA: Ne CLAUDE_CODE_OAUTH_TOKEN ne de ANTHROPIC_API_KEY tanımlı!"
-  log "Max Plan kullanıcıları: CLAUDE_CODE_OAUTH_TOKEN env var'ını tanımlayın."
-  log "API Key kullanıcıları: ANTHROPIC_API_KEY env var'ını tanımlayın."
-  echo "Claude auth eksik" > "${WORKSPACE}/build-status.txt"
-else
+  log "  UYARI: Ne CLAUDE_CODE_OAUTH_TOKEN ne de ANTHROPIC_API_KEY tanımlı."
+  log "  Claude CLI bağlantı testi ile kontrol edilecek (claude login ile giriş yapılmış olabilir)."
+fi
 
-  # 3. Basit bir bağlantı testi yap (hızlı, minimal prompt)
+# 3. Bağlantı testi — her zaman yap
+
   log "  Claude CLI bağlantı testi yapılıyor..."
   local_test_file="${WORKSPACE}/logs/preflight-test.json"
   local_test_stderr="${WORKSPACE}/logs/preflight-test.stderr"
@@ -935,10 +988,10 @@ else
       fi
     fi
   fi
-fi
 
 log "Claude CLI durumu: $([ "$CLAUDE_CLI_OK" = true ] && echo 'HAZIR ✓' || echo 'SORUNLU ✗')"
 log ""
+
 
 # ─── Stitch MCP Ön Kontrolü VEYA Otomatik Kurulum ───────────
 log "Stitch MCP ön kontrolü yapılıyor..."
