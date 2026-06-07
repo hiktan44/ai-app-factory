@@ -137,6 +137,15 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isApi = pathname.startsWith('/api/');
   
+  // Auth devre dışı bırakılmışsa (mock url, boş url veya explicit flag) tüm istekleri doğrudan geçir
+  const isAuthDisabled = !process.env.NEXT_PUBLIC_SUPABASE_URL || 
+                         process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://mock-supabase-url.supabase.co' ||
+                         process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true';
+
+  if (isAuthDisabled) {
+    return NextResponse.next();
+  }
+
   // Get route rule
   const rule = getRouteRule(pathname);
 

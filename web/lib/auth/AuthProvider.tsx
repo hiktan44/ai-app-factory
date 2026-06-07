@@ -21,6 +21,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Fetch user with roles and permissions
   const fetchUser = useCallback(async () => {
+    const isAuthDisabled = !process.env.NEXT_PUBLIC_SUPABASE_URL || 
+                           process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://mock-supabase-url.supabase.co' ||
+                           process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true';
+
+    if (isAuthDisabled) {
+      const mockUser: AuthUser = {
+        id: 'mock-admin-id',
+        email: 'admin@factory.local',
+        profile: { id: 'mock-admin-id', email: 'admin@factory.local', full_name: 'Super Admin' },
+        roles: [{ id: 'super_admin_role', name: 'Super Admin', slug: 'super_admin', level: 100 }],
+        permissions: [{ id: 'manage_all', action: 'manage', resource: 'all' }],
+        can: (action: PermissionAction, resource: PermissionResource) => true,
+        hasRole: (role: RoleSlug) => true,
+      };
+      setUser(mockUser);
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -63,15 +82,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         roles,
         permissions,
         can: (action: PermissionAction, resource: PermissionResource) => {
-          // Check for specific permission
           const hasSpecific = permissions.some(
             (p: any) => p.resource === resource && p.action === action
           );
-          // Check for 'manage' permission (grants all actions)
           const hasManage = permissions.some(
             (p: any) => p.resource === resource && p.action === 'manage'
           );
-          // Check for 'all' resource permission
           const hasAll = permissions.some(
             (p: any) => p.resource === 'all' && (p.action === action || p.action === 'manage')
           );
@@ -94,6 +110,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initial auth check
   useEffect(() => {
     fetchUser();
+
+    const isAuthDisabled = !process.env.NEXT_PUBLIC_SUPABASE_URL || 
+                           process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://mock-supabase-url.supabase.co' ||
+                           process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true';
+
+    if (isAuthDisabled) {
+      return;
+    }
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
