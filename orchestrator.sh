@@ -467,9 +467,21 @@ extract_and_write() {
 
 CATEGORY="${1:?Kullanım: ./orchestrator.sh <kategori>}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-# Web UI'dan RUN_ID env değişkeni geçilmişse onu kullan, yoksa üret
-RUN_ID="${RUN_ID:-${CATEGORY}_${TIMESTAMP}}"
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
+
+# En son yarıda kalan çalışmadan devam etme (RESUME_LAST) desteği
+if [ -z "${RUN_ID:-}" ] && [ "${RESUME_LAST:-0}" = "1" ]; then
+  LAST_RUN=$(ls -td "${PROJECT_ROOT}/runs/${CATEGORY}_"* 2>/dev/null | head -1)
+  if [ -n "$LAST_RUN" ]; then
+    RUN_ID=$(basename "$LAST_RUN")
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [RESUME] En son çalışma dizini tespit edildi: ${RUN_ID}"
+  else
+    RUN_ID="${CATEGORY}_${TIMESTAMP}"
+  fi
+else
+  RUN_ID="${RUN_ID:-${CATEGORY}_${TIMESTAMP}}"
+fi
+
 WORKSPACE="${PROJECT_ROOT}/runs/${RUN_ID}"
 PROMPTS_DIR="${PROJECT_ROOT}/prompts"
 LEARNINGS_FILE="${PROJECT_ROOT}/learnings.json"
