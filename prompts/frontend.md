@@ -32,6 +32,14 @@ Sana sağlanan Stitch MCP araçlarını kullanarak frontend tasarım sürecini a
 
 ---
 
+## 🔒 Supabase & Güvenlik Sıkılaştırması
+
+*   **Row Level Security (RLS) Tam Uyum:** İstemci tarafında (Client Components) veritabanına doğrudan yapılan tüm Supabase sorguları, aktif kullanıcının yetkilendirmesi (`auth.uid()`) ile kısıtlanmış tablolara erişmelidir. RLS bypass edilmemelidir.
+*   **Service Role Anahtarı Koruması:** `service_role` / admin API anahtarları asla istemci tarafına (client-side) sızdırılmamalıdır. Bu anahtarlar sadece sunucu tarafındaki API route'larında veya Server Action'larda güvenli bir şekilde kullanılmalıdır.
+*   **Girdi Doğrulama (Input Validation):** Arayüz üzerindeki tüm kullanıcı girdileri ve form alanları, XSS ve SQL Injection risklerine karşı sanitize edilmeli, veriler sunucuya gönderilmeden önce geçerliliği doğrulanmalıdır.
+
+---
+
 ## 📄 Çıktı ve Raporlama Standartları
 
 İşlemi tamamladığında orkestratöre ve diğer ajanlara yol göstermek üzere `architecture/frontend_build_report.json` adında bir rapor yaz:

@@ -5,13 +5,9 @@
 # ============================================================
 
 # --- Prompts ---
-if [ -z "$(ls -A /factory/prompts/ 2>/dev/null)" ]; then
-  echo "[entrypoint] /factory/prompts/ boş — default promptlar kopyalanıyor..."
-  cp /app/default-prompts/*.md /factory/prompts/ 2>/dev/null
-  echo "[entrypoint] $(ls /factory/prompts/ | wc -l) prompt dosyası kopyalandı."
-else
-  echo "[entrypoint] /factory/prompts/ zaten dolu — $(ls /factory/prompts/ | wc -l) dosya mevcut."
-fi
+echo "[entrypoint] /factory/prompts/ default promptlar ile senkronize ediliyor..."
+cp /app/default-prompts/*.md /factory/prompts/ 2>/dev/null
+echo "[entrypoint] $(ls /factory/prompts/ | wc -l) prompt dosyası hazır."
 
 # --- orchestrator.sh (her zaman güncelle — image'daki en yeni versiyon) ---
 cp /app/default-orchestrator.sh /factory/orchestrator.sh

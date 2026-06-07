@@ -27,10 +27,13 @@ Aşağıdaki adımları sırayla ve disiplinli bir şekilde yürüt:
 
 4. **Supabase Entegrasyonu:**
    - `lib/supabase/client.ts` ve `lib/supabase/server.ts` dosyalarını oluştur.
+   - İstemci tarafında (Client Component) sadece anon/public anahtarları kullanan istemcileri; sunucu tarafında (Server Component, Route Handler) ise güvenli server istemcilerini kullan. `service_role` / admin anahtarlarını asla client kodlarına sızdırma.
    - `/lib/supabase/middleware.ts` dosyasını yazarak, korumalı route korumalarını (auth-guard) sağla. Giriş yapmamış kullanıcıları `/login` sayfasına yönlendir, giriş yapmış olanların ise `/login` sayfasına girmesini engelle.
 
-5. **Veritabanı Migration Dosyaları:**
+5. **Veritabanı Migration ve RLS Güvenliği:**
    - `architecture/data_model.md` içindeki PostgreSQL şemasını, Supabase CLI veya migration dosyalarına dönüştürerek `supabase/migrations/` klasörü altına yaz.
+   - **Row Level Security (RLS):** Tüm veritabanı tablolarında RLS'i (`ALTER TABLE ... ENABLE ROW LEVEL SECURITY;`) kesinlikle aktif et.
+   - Her tablo için SELECT, INSERT, UPDATE ve DELETE politikalarını (policies) yaz. Kullanıcıların sadece kendi verilerine (`auth.uid() = user_id`) erişebilmesini sağla. Anonim veya yetkisiz erişimleri (public access) kesinlikle engelle.
    - Tablolar, indeksler, RLS politikaları ve trigger tanımları eksiksiz olmalıdır.
 
 6. **Premium Landing Page Kodlama:**
