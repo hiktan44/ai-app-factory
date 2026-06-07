@@ -82,9 +82,15 @@ call_gemini() {
   local system_prompt="$1"
   local user_prompt="$2"
   local output_file="$3"
+  local model="${4:-gemini-3.5-flash}"
 
   if [ -z "${GEMINI_API_KEY:-}" ]; then
     return 1
+  fi
+
+  local model_endpoint="gemini-3.5-flash"
+  if [ "$model" = "gemini-3.1-pro" ] || [ "$model" = "gemini-3.1-pro-preview" ]; then
+    model_endpoint="gemini-3.1-pro-preview"
   fi
 
   local payload
@@ -109,7 +115,7 @@ call_gemini() {
 
   local response
   response=$(curl -s -X POST \
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${GEMINI_API_KEY}" \
+    "https://generativelanguage.googleapis.com/v1beta/models/${model_endpoint}:generateContent?key=${GEMINI_API_KEY}" \
     -H "Content-Type: application/json" \
     -d "$payload" 2>/dev/null)
 
@@ -653,8 +659,14 @@ run_step_smart() {
 
     case "$provider" in
       gemini)
-        if call_gemini "$system_prompt" "$kullanici_promptu" "$json_dosya"; then
+        if call_gemini "$system_prompt" "$kullanici_promptu" "$json_dosya" "gemini-3.5-flash"; then
           kullanilan_provider="gemini"
+          break
+        fi
+        ;;
+      gemini-pro)
+        if call_gemini "$system_prompt" "$kullanici_promptu" "$json_dosya" "gemini-3.1-pro-preview"; then
+          kullanilan_provider="gemini-pro"
           break
         fi
         ;;
@@ -882,16 +894,6 @@ else
     else
       log "  stdout: BOŞ"
     fi
-    # Debug: gosu ortam kontrolü
-    if command -v gosu &>/dev/null && [ "$(id -u)" = "0" ]; then
-      log "  DEBUG: claude binary: $(which claude 2>&1)"
-      log "  DEBUG: factory user id: $(gosu factory id 2>&1)"
-      log "  DEBUG: factory HOME test: $(HOME=/home/factory gosu factory sh -c 'echo HOME=$HOME; ls -la ~/.claude/ 2>&1' | head -5)"
-      log "  DEBUG: node version: $(gosu factory node --version 2>&1)"
-      # Inline test — claude'u doğrudan çalıştır (redirect olmadan)
-      inline_test=$(HOME=/home/factory ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" ANTHROPIC_AUTH_TOKEN="${ANTHROPIC_AUTH_TOKEN:-}" ANTHROPIC_BASE_URL="${ANTHROPIC_BASE_URL:-}" ANTHROPIC_MODEL="${ANTHROPIC_MODEL:-}" PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" gosu factory claude -p "hi" --dangerously-skip-permissions --output-format json --max-turns 1 2>&1 || true)
-      log "  DEBUG: inline test (ilk 500 byte): $(echo "$inline_test" | head -c 500)"
-    fi
     log "  Pipeline devam edecek ama Claude adımları başarısız olabilir."
   else
     local_test_result=$(jq -r '.result // ""' "${local_test_file}" 2>/dev/null || echo "")
@@ -908,6 +910,33 @@ else
 fi
 
 log "Claude CLI durumu: $([ "$CLAUDE_CLI_OK" = true ] && echo 'HAZIR ✓' || echo 'SORUNLU ✗')"
+log ""
+
+# ─── Stitch MCP Ön Kontrolü VEYA Otomatik Kurulum ───────────
+log "Stitch MCP ön kontrolü yapılıyor..."
+STITCH_OK=false
+
+if [ "${DRY_RUN:-0}" = "1" ]; then
+  STITCH_OK=true
+  log "  Dry-run aktif — Stitch MCP testi atlanıyor."
+else
+  # mcp listesinde stitch var mı bak
+  if claude mcp list 2>/dev/null | grep -qi "stitch"; then
+    STITCH_OK=true
+    log "  Stitch MCP zaten ekli ✓"
+  else
+    log "  Stitch MCP bulunamadı, otomatik ekleniyor..."
+    # Otomatik eklemeyi dene (npx @_davideast/stitch-mcp proxy)
+    if claude mcp add stitch -- npx -y @_davideast/stitch-mcp proxy &>/dev/null; then
+      STITCH_OK=true
+      log "  Stitch MCP başarıyla eklendi ✓"
+    else
+      log "  UYARI: Stitch MCP otomatik eklenemedi (veya terminal interactive onay bekliyor olabilir). Manuel eklemeniz gerekebilir."
+    fi
+  fi
+fi
+
+log "Stitch MCP durumu: $([ "$STITCH_OK" = true ] && echo 'HAZIR ✓' || echo 'SORUNLU ✗')"
 log ""
 
 # pre-approved.json varsa keşif adımını atla
