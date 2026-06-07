@@ -1196,10 +1196,10 @@ run_step_smart "package" \
 Deploy dizini: ${WORKSPACE}/deploy
 Ürün spesifikasyonu: ${WORKSPACE}/product-spec.md
 
-Görev:
+Görevi:
 1. ${WORKSPACE}/app/ dizinindeki uygulamayı incele
 2. Dockerfile oluştur (multi-stage, standalone output) — app kök dizinine koy
-3. docker-compose.yml oluştur: build context MUTLAKA `.` olsun, alt dizin KULLANMA
+3. docker-compose.yml oluştur: build context MUTLAKA '.' olsun, alt dizin KULLANMA
 4. coolify-config.json oluştur
 5. .env.example oluştur
 6. deploy.sh oluştur
@@ -1208,7 +1208,7 @@ Görev:
 9. Deploy dosyalarının kopyalarını ${WORKSPACE}/deploy/ dizinine de koy
 
 ⚠️ ÖNEMLİ COOLIFY HATA ÖNLEME:
-- Build context HER ZAMAN `.` olsun
+- Build context HER ZAMAN '.' olsun
 - Dockerfile app kök dizinine yerleştirilsin
 - Hiçbir zaman context: ./app veya context: ./video-ads-studio gibi alt dizin kullanma
 - Bu hatalı ayar Coolify'da "path \"/artifacts/xxx\" not found" hatasına sebep olur" \
