@@ -419,7 +419,7 @@ LEARNINGS_FILE="${PROJECT_ROOT}/learnings.json"
 MAX_VERIFY_ATTEMPTS=5
 LOG_FILE="${WORKSPACE}/pipeline.log"
 BUILD_SUCCESS=false
-TOPLAM_ADIM=11
+TOPLAM_ADIM=12
 MEVCUT_ADIM=0
 
 # ─── Yardımcı Fonksiyonlar ───────────────────────────────────
@@ -952,7 +952,25 @@ if [ ! -f "${WORKSPACE}/architecture/file_structure.md" ] && [ ! -f "${WORKSPACE
   exit 1
 fi
 
-# ─── ADIM 3: KODLAMA ─────────────────────────────────────────
+# ─── ADIM 3: ARAYÜZ TASARIMI (Stitch) ────────────────────────
+adim_baslik "ARAYÜZ TASARIMI (Stitch)"
+
+# Claude zorunlu — Stitch MCP araçlarını kullanmak için
+run_step_smart "frontend" \
+  "${PROMPTS_DIR}/frontend.md" \
+  "Workspace dizini: ${WORKSPACE}
+Ürün spesifikasyonu: ${WORKSPACE}/product-spec.md
+Mimari dizini: ${WORKSPACE}/architecture/
+Learnings dosyası: ${LEARNINGS_FILE}
+
+Görev:
+1. ${WORKSPACE}/product-spec.md ve ${WORKSPACE}/architecture/ dizinindeki tüm dokümanları oku
+2. Stitch MCP araçlarını otonom olarak kullanarak projeyi oluştur, tasarım sistemini uygula ve ekran tasarımlarını (Landing Page, Dashboard vb.) hazırla
+3. Üretilen ekranların kodlarını alan ${WORKSPACE}/app dizinine entegre et
+4. İşlem tamamlandığında ${WORKSPACE}/architecture/frontend_build_report.json dosyasını oluştur" \
+  "claude"
+
+# ─── ADIM 4: KODLAMA ─────────────────────────────────────────
 
 adim_baslik "KODLAMA (Build)"
 
