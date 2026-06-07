@@ -1139,7 +1139,20 @@ Görev:
     "claude" \
     "${devam_flag}" || true
 
+  json_log="${WORKSPACE}/logs/verify_fix_${verify_attempt}.json"
+  step_success=false
+
   if [ -f "${WORKSPACE}/build-status.txt" ] && grep -q "BUILD_SUCCESS" "${WORKSPACE}/build-status.txt" 2>/dev/null; then
+    step_success=true
+  elif [ -f "${WORKSPACE}/app/build-status.txt" ] && grep -q "BUILD_SUCCESS" "${WORKSPACE}/app/build-status.txt" 2>/dev/null; then
+    step_success=true
+    mv "${WORKSPACE}/app/build-status.txt" "${WORKSPACE}/build-status.txt" 2>/dev/null || true
+  elif [ -f "${json_log}" ] && grep -qE '"result"[[:space:]]*:[[:space:]]*"success"' "${json_log}" 2>/dev/null; then
+    step_success=true
+    echo "BUILD_SUCCESS" > "${WORKSPACE}/build-status.txt"
+  fi
+
+  if [ "$step_success" = true ]; then
     BUILD_SUCCESS=true
     log "Build ${verify_attempt}. denemede başarılı!"
     break
