@@ -242,8 +242,16 @@ call_claude() {
   local output_file="$3"
   local extra_flags="${4:-}"
 
-  # Auth kontrolü: OAuth token VEYA API key VEYA OpenRouter/Z.ai proxy token gerekli
-  if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -z "${ANTHROPIC_AUTH_TOKEN:-}" ]; then
+  # Kalıcı credentials dosyası varsa auth var kabul et
+  local credentials_exist=false
+  if ([ -f "${CLAUDE_CONFIG_DIR:-}/.credentials.json" ] && jq -e '.claudeAiOauth' "${CLAUDE_CONFIG_DIR}/.credentials.json" &>/dev/null 2>&1) || \
+     ([ -f "${CLAUDE_CONFIG_DIR:-}/claude.json" ] && jq -e '.oauthToken' "${CLAUDE_CONFIG_DIR}/claude.json" &>/dev/null 2>&1) || \
+     ([ -f "${CLAUDE_CONFIG_DIR:-}.json" ] && jq -e '.claudeAiOauth // .oauthToken' "${CLAUDE_CONFIG_DIR}.json" &>/dev/null 2>&1); then
+    credentials_exist=true
+  fi
+
+  # Auth kontrolü: OAuth token VEYA API key VEYA OpenRouter/Z.ai proxy token VEYA kalıcı credentials gerekli
+  if [ "$credentials_exist" = false ] && [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -z "${ANTHROPIC_AUTH_TOKEN:-}" ]; then
     log "HATA: Ne CLAUDE_CODE_OAUTH_TOKEN, ne ANTHROPIC_API_KEY, ne de ANTHROPIC_AUTH_TOKEN tanımlı — Claude CLI çalışamaz"
     return 1
   fi
@@ -574,8 +582,16 @@ Lütfen bu adımdan çıkan sonuçları ve dosya durumlarını analiz et. Aşağ
   local stderr_file="${json_dosya}.stderr"
   local exit_code=0
   
-  # OAuth token VEYA API key VEYA Auth token kontrolü
-  if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -z "${ANTHROPIC_AUTH_TOKEN:-}" ]; then
+  # Kalıcı credentials dosyası varsa auth var kabul et
+  local credentials_exist=false
+  if ([ -f "${CLAUDE_CONFIG_DIR:-}/.credentials.json" ] && jq -e '.claudeAiOauth' "${CLAUDE_CONFIG_DIR}/.credentials.json" &>/dev/null 2>&1) || \
+     ([ -f "${CLAUDE_CONFIG_DIR:-}/claude.json" ] && jq -e '.oauthToken' "${CLAUDE_CONFIG_DIR}/claude.json" &>/dev/null 2>&1) || \
+     ([ -f "${CLAUDE_CONFIG_DIR:-}.json" ] && jq -e '.claudeAiOauth // .oauthToken' "${CLAUDE_CONFIG_DIR}.json" &>/dev/null 2>&1); then
+    credentials_exist=true
+  fi
+
+  # OAuth token VEYA API key VEYA Auth token VEYA kalıcı credentials kontrolü
+  if [ "$credentials_exist" = false ] && [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -z "${ANTHROPIC_AUTH_TOKEN:-}" ]; then
     log "UYARI: Claude kimlik doğrulaması yok, orkestratör değerlendirmesi varsayılan olarak onaylandı."
     return 0
   fi
