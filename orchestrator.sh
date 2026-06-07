@@ -525,7 +525,7 @@ RUNNER_EOF
     CLAUDE_CODE_OAUTH_TOKEN="${CLAUDE_CODE_OAUTH_TOKEN:-}" \
     ANTHROPIC_AUTH_TOKEN="${ANTHROPIC_AUTH_TOKEN:-}" \
     ANTHROPIC_BASE_URL="${ANTHROPIC_BASE_URL:-}" \
-    ANTHROPIC_MODEL="${ANTHROPIC_MODEL:-}" \
+    ANTHROPIC_MODEL="claude-opus-4-8" \
     CLAUDE_CODE_SKIP_ONBOARDING="1" \
     CLAUDE_CODE_ENABLE_TELEMETRY="0" \
     PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
@@ -534,7 +534,7 @@ RUNNER_EOF
 
     rm -f "${prompt_file}" "${sysprompt_file}" "${runner_script}" 2>/dev/null || true
   else
-    claude -p "${user_prompt}" \
+    ANTHROPIC_MODEL="claude-opus-4-8" claude -p "${user_prompt}" \
       --append-system-prompt "${system_prompt}" \
       --dangerously-skip-permissions \
       --output-format json \
