@@ -30,8 +30,12 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Runtime tools (orchestrator.sh needs bash, jq, curl; Coolify healthcheck needs wget)
-RUN apk add --no-cache bash jq curl wget
+# Runtime tools (orchestrator.sh needs tzdata, bash, jq, curl; Coolify healthcheck needs wget)
+RUN apk add --no-cache bash jq curl wget tzdata
+
+# Set timezone
+ENV TZ=Europe/Istanbul
+RUN cp /usr/share/zoneinfo/Europe/Istanbul /etc/localtime && echo "Europe/Istanbul" > /etc/timezone
 
 # Install Claude CLI globally (pipeline execution)
 RUN corepack enable && npm install -g @anthropic-ai/claude-code

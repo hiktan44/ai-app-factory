@@ -16,6 +16,7 @@ services:
       - ai-factory-data:/factory
     environment:
       - NODE_ENV=production
+      - TZ=Europe/Istanbul
       - PROJECT_ROOT=/factory
       - DATABASE_URL=${DATABASE_URL}
       - CLAUDE_CODE_OAUTH_TOKEN=${CLAUDE_CODE_OAUTH_TOKEN:-}

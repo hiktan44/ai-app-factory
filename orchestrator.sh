@@ -1132,9 +1132,6 @@ while [ $verify_attempt -lt $MAX_VERIFY_ATTEMPTS ]; do
   log "Doğrulama denemesi: ${verify_attempt}/${MAX_VERIFY_ATTEMPTS}"
 
   devam_flag=""
-  if [ $verify_attempt -gt 1 ]; then
-    devam_flag="--continue"
-  fi
 
   run_step_smart "verify_fix_${verify_attempt}" \
     "${PROMPTS_DIR}/verify_fix.md" \
