@@ -25,6 +25,24 @@ export NVM_DIR="${HOME}/.nvm"
 PROJECT_ROOT_TEMP="$(cd "$(dirname "$0")" && pwd)"
 SETTINGS_FILE="${PROJECT_ROOT_TEMP}/settings.json"
 
+# .env veya web/.env.local varsa yükle
+if [ -f "${PROJECT_ROOT_TEMP}/.env" ]; then
+  # Dosyadaki boşlukları ve yorum satırlarını eleyerek export et
+  while IFS= read -r line || [ -n "$line" ]; do
+    [[ "$line" =~ ^#.*$ ]] && continue
+    [[ -z "$line" ]] && continue
+    export "$line"
+  done < "${PROJECT_ROOT_TEMP}/.env"
+fi
+
+if [ -f "${PROJECT_ROOT_TEMP}/web/.env.local" ]; then
+  while IFS= read -r line || [ -n "$line" ]; do
+    [[ "$line" =~ ^#.*$ ]] && continue
+    [[ -z "$line" ]] && continue
+    export "$line"
+  done < "${PROJECT_ROOT_TEMP}/web/.env.local"
+fi
+
 if [ -f "$SETTINGS_FILE" ]; then
   # settings.json'dan keyler okunur (jq ile)
   CLAUDE_OAUTH_TOKEN_LOCAL=$(jq -r '.claudeOauthToken // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
@@ -291,7 +309,28 @@ RUNNER_EOF
       auth_err=true
     fi
 
-    if [ "$auth_err" = true ]; then
+    # Check for credit balance errors
+    local credit_err=false
+    if [ -f "${stderr_file}" ] && (grep -qi "credit balance" "${stderr_file}" || grep -qi "balance is too low" "${stderr_file}"); then
+      credit_err=true
+    fi
+    if [ -f "${output_file}" ] && (grep -qi "credit balance" "${output_file}" || grep -qi "balance is too low" "${output_file}"); then
+      credit_err=true
+    fi
+
+    if [ "$credit_err" = true ]; then
+      log "=========================================================================="
+      log "❌ KRİTİK HATA: Anthropic Kredi Bakiyesi Yetersiz (Credit Balance Too Low)"
+      log "Kullandığınız Anthropic API anahtarında veya Claude hesabınızda yeterli bakiye bulunmamaktadır!"
+      log ""
+      log "Çözüm Önerileri:"
+      log "1. API Anahtarı (API Key) Kullanıyorsanız:"
+      log "   https://console.anthropic.com/ settings/billing sayfasına gidin ve bakiye yükleyin."
+      log ""
+      log "2. Claude Code Pro Plan Kullanıyorsanız:"
+      log "   Hesabınızın günlük/aylık kullanım limitlerini kontrol edin veya faturalandırılabilir API key'e geçiş yapın."
+      log "=========================================================================="
+    elif [ "$auth_err" = true ]; then
       log "=========================================================================="
       log "❌ KRİTİK HATA: Claude CLI Kimlik Doğrulama Hatası (401 - Unauthorized)"
       log "Claude Code veya API anahtarınız geçersiz, süresi dolmuş ya da eksik!"
@@ -841,7 +880,6 @@ else
       log "  DEBUG: factory HOME test: $(HOME=/home/factory gosu factory sh -c 'echo HOME=$HOME; ls -la ~/.claude/ 2>&1' | head -5)"
       log "  DEBUG: node version: $(gosu factory node --version 2>&1)"
       # Inline test — claude'u doğrudan çalıştır (redirect olmadan)
-      local inline_test
       inline_test=$(HOME=/home/factory ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" ANTHROPIC_AUTH_TOKEN="${ANTHROPIC_AUTH_TOKEN:-}" ANTHROPIC_BASE_URL="${ANTHROPIC_BASE_URL:-}" ANTHROPIC_MODEL="${ANTHROPIC_MODEL:-}" PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" gosu factory claude -p "hi" --dangerously-skip-permissions --output-format json --max-turns 1 2>&1 || true)
       log "  DEBUG: inline test (ilk 500 byte): $(echo "$inline_test" | head -c 500)"
     fi
@@ -905,6 +943,10 @@ KALİTE KRİTERLERİ:
 Önemli: Çıktıyı mutlaka ${WORKSPACE}/product-spec.md dosyasına yaz." \
     "gemini grok openrouter claude"
 
+  if [ "${DRY_RUN:-0}" = "1" ]; then
+    echo "Dry run: mock product-spec.md" > "${WORKSPACE}/product-spec.md"
+  fi
+
   # Post-processing: Non-Claude provider product-spec.md yazmaz
   if [ ! -f "${WORKSPACE}/product-spec.md" ] || [ ! -s "${WORKSPACE}/product-spec.md" ]; then
     log "product-spec.md bulunamadı, post-processing ile çıkarılıyor..."
@@ -940,6 +982,12 @@ Görev:
    - dependencies.json
    - tech_decisions.md" \
   "claude"
+
+if [ "${DRY_RUN:-0}" = "1" ]; then
+  mkdir -p "${WORKSPACE}/architecture"
+  echo "Dry run: mock file_structure.md" > "${WORKSPACE}/architecture/file_structure.md"
+  echo "Dry run: mock architecture-plan.md" > "${WORKSPACE}/architecture/architecture-plan.md"
+fi
 
 # Post-processing: Non-Claude provider mimari dosyaları yazmaz
 if [ ! -f "${WORKSPACE}/architecture/file_structure.md" ]; then
@@ -1001,6 +1049,10 @@ Görev:
 # ─── ADIM 4: DOĞRULAMA ───────────────────────────────────────
 
 adim_baslik "DOĞRULAMA ve DÜZELTME (Verify & Fix)"
+
+if [ "${DRY_RUN:-0}" = "1" ]; then
+  echo "BUILD_SUCCESS" > "${WORKSPACE}/build-status.txt"
+fi
 
 verify_attempt=0
 
