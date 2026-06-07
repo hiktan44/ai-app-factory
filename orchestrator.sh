@@ -439,6 +439,134 @@ adim_baslik() {
   log ""
 }
 
+# ─── Orkestratör Değerlendirme Fonksiyonu ─────────────────────
+call_orchestrator_eval() {
+  local adim_adi="$1"
+  local json_dosya="${WORKSPACE}/logs/orchestrator_${adim_adi}.json"
+  
+  log "Orkestratör Değerlendirmesi: ${adim_adi} adımı inceleniyor..."
+
+  # Kuru çalıştırma
+  if [ "${DRY_RUN:-0}" = "1" ]; then
+    return 0
+  fi
+
+  # Workspace dizin yapısını ve durumunu topla
+  local workspace_state=""
+  workspace_state+="Mevcut Dizin Listesi:\n"
+  workspace_state+="$(find "${WORKSPACE}" -maxdepth 3 -not -path '*/.*' -not -path '*/node_modules*' 2>/dev/null | head -40)\n"
+  
+  if [ -f "${WORKSPACE}/product-spec.md" ]; then
+    workspace_state+="product-spec.md boyutu: $(wc -c < "${WORKSPACE}/product-spec.md" 2>/dev/null) byte\n"
+  fi
+  
+  if [ -f "${WORKSPACE}/build-status.txt" ]; then
+    workspace_state+="build-status.txt içeriği: $(cat "${WORKSPACE}/build-status.txt" 2>/dev/null)\n"
+  fi
+
+  local user_prompt="Değerlendirilecek Adım: ${adim_adi}
+Workspace: ${WORKSPACE}
+Mevcut Durum:
+${workspace_state}
+
+Lütfen bu adımdan çıkan sonuçları ve dosya durumlarını analiz et. Aşağıdaki JSON formatında yanıt dön:
+{
+  \"approved\": true/false,
+  \"feedback\": \"Onaylanma/onaylanmama sebebi veya iyileştirme önerisi\",
+  \"next_action\": \"PROCEED | RE-RUN | FIX | STOP\"
+}"
+
+  local system_prompt
+  if [ -f "${PROMPTS_DIR}/orchestrator.md" ]; then
+    system_prompt=$(cat "${PROMPTS_DIR}/orchestrator.md")
+  else
+    log "UYARI: Orkestratör promptu bulunamadı, değerlendirme atlanıyor."
+    return 0
+  fi
+
+  # Orkestrasyon adımı için Claude'u kullanalım
+  local stderr_file="${json_dosya}.stderr"
+  local exit_code=0
+  
+  # OAuth token VEYA API key VEYA Auth token kontrolü
+  if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -z "${ANTHROPIC_AUTH_TOKEN:-}" ]; then
+    log "UYARI: Claude kimlik doğrulaması yok, orkestratör değerlendirmesi varsayılan olarak onaylandı."
+    return 0
+  fi
+
+  # Claude CLI'yi çalıştır
+  if command -v gosu &>/dev/null && [ "$(id -u)" = "0" ]; then
+    local prompt_file="${json_dosya}.prompt"
+    local sysprompt_file="${json_dosya}.sysprompt"
+    local runner_script="${json_dosya}.runner.sh"
+
+    printf '%s' "${user_prompt}" > "${prompt_file}"
+    printf '%s' "${system_prompt}" > "${sysprompt_file}"
+
+    cat > "${runner_script}" <<RUNNER_EOF
+#!/bin/sh
+cd "${WORKSPACE:-$(pwd)}" || exit 1
+exec claude -p "\$(cat '${prompt_file}')" \\
+  --append-system-prompt "\$(cat '${sysprompt_file}')" \\
+  --dangerously-skip-permissions \\
+  --output-format json \\
+  --max-turns 2
+RUNNER_EOF
+    chmod +x "${runner_script}"
+    chown factory:factory "${prompt_file}" "${sysprompt_file}" "${runner_script}" 2>/dev/null || true
+
+    local _gosu_api_key=""
+    if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+      _gosu_api_key="${ANTHROPIC_API_KEY:-}"
+    fi
+
+    HOME=/home/factory \
+    ANTHROPIC_API_KEY="${_gosu_api_key}" \
+    CLAUDE_CODE_OAUTH_TOKEN="${CLAUDE_CODE_OAUTH_TOKEN:-}" \
+    ANTHROPIC_AUTH_TOKEN="${ANTHROPIC_AUTH_TOKEN:-}" \
+    ANTHROPIC_BASE_URL="${ANTHROPIC_BASE_URL:-}" \
+    ANTHROPIC_MODEL="${ANTHROPIC_MODEL:-}" \
+    CLAUDE_CODE_SKIP_ONBOARDING="1" \
+    CLAUDE_CODE_ENABLE_TELEMETRY="0" \
+    PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+    gosu factory "${runner_script}" \
+      > "${json_dosya}" 2>"${stderr_file}" || exit_code=$?
+
+    rm -f "${prompt_file}" "${sysprompt_file}" "${runner_script}" 2>/dev/null || true
+  else
+    claude -p "${user_prompt}" \
+      --append-system-prompt "${system_prompt}" \
+      --dangerously-skip-permissions \
+      --output-format json \
+      --max-turns 2 \
+      > "${json_dosya}" 2>"${stderr_file}" || exit_code=$?
+  fi
+
+  if [ $exit_code -ne 0 ]; then
+    log "UYARI: Orkestratör API çağrısı exit code $exit_code verdi. Adım varsayılan olarak onaylandı."
+    return 0
+  fi
+
+  # Sonucu oku ve parse et
+  local approved
+  approved=$(jq -r '.result | fromjson | .approved // true' "${json_dosya}" 2>/dev/null || echo "true")
+  local feedback
+  feedback=$(jq -r '.result | fromjson | .feedback // ""' "${json_dosya}" 2>/dev/null || echo "")
+  local next_action
+  next_action=$(jq -r '.result | fromjson | .next_action // "PROCEED"' "${json_dosya}" 2>/dev/null || echo "PROCEED")
+
+  log "Orkestratör Değerlendirme Sonucu: Approved=${approved}, Action=${next_action}"
+  if [ -n "$feedback" ]; then
+    log "Orkestratör Geri Bildirimi: ${feedback}"
+  fi
+
+  if [ "$approved" = "false" ] || [ "$next_action" = "STOP" ]; then
+    return 1
+  fi
+
+  return 0
+}
+
 # ─── Akıllı LLM Routing ──────────────────────────────────────
 # preferred_providers: boşlukla ayrılmış öncelik listesi
 # Örnek: "zai openrouter claude"
@@ -545,6 +673,14 @@ run_step_smart() {
     log "Maliyet: \$${maliyet}"
   else
     log "Maliyet: ~\$0 (${kullanilan_provider})"
+  fi
+
+  # Orkestratör değerlendirmesi
+  if [[ "$adim_adi" != orchestrator_* && "$adim_adi" != "preflight-test" ]]; then
+    if ! call_orchestrator_eval "$adim_adi"; then
+      log "❌ Orkestratör kontrolü başarısız oldu! Pipeline durduruluyor."
+      return 1
+    fi
   fi
 
   return 0
