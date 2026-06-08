@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { AuthProvider } from "@/lib/auth/AuthProvider";
+import { GlobalNotificationObserver } from "@/components/layout/global-notification-observer";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default function RootLayout({
     <html lang="tr">
       <body className="min-h-screen noise-overlay">
         <AuthProvider>
+          <GlobalNotificationObserver />
           <div className="flex min-h-screen">
             <Sidebar />
             <div className="flex-1 flex flex-col min-h-screen md:ml-64">
