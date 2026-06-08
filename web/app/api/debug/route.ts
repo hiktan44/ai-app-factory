@@ -137,5 +137,17 @@ export async function GET() {
     info.recentRunsError = String(e);
   }
 
+  // Check next-error.log
+  try {
+    const errorLogPath = "/factory/next-error.log";
+    if (fs.existsSync(errorLogPath)) {
+      info.nextErrorLog = fs.readFileSync(errorLogPath, "utf-8").slice(-3000);
+    } else {
+      info.nextErrorLog = "No next-error.log found";
+    }
+  } catch (e) {
+    info.nextErrorLog = "Error reading next-error.log: " + String(e);
+  }
+
   return NextResponse.json(info, { status: 200 });
 }

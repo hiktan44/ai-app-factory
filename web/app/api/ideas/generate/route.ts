@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { generateIdea } from "@/lib/gemini";
 import { CATEGORIES } from "@/lib/constants";
 import { researchTrends } from "@/lib/trend-researcher";
+import fs from "fs";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,12 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Idea generation failed:", error);
+    try {
+      const logMsg = `[${new Date().toISOString()}] Idea generation error: ${error instanceof Error ? error.stack : String(error)}\n`;
+      fs.appendFileSync("/factory/next-error.log", logMsg);
+    } catch (e) {
+      console.error("Failed to write debug log:", e);
+    }
     const isProd = process.env.NODE_ENV === "production";
     const message = isProd
       ? "Fikir üretilirken sistemsel bir hata oluştu."
