@@ -207,27 +207,58 @@ export async function deployGeneratedApp(
   const coolifyBaseUrl = settings.coolifyApiUrl.replace(/\/+$/, "");
 
   let appUuid = "";
+  let destinationUuid = "";
+
+  // Dynamic destination lookup (Required if server has multiple destinations)
+  try {
+    const destRes = await fetch(`${coolifyBaseUrl}/api/v1/servers/${serverUuid}/destinations`, {
+      headers: { Authorization: `Bearer ${settings.coolifyApiToken}` },
+    });
+    let dests: { uuid: string }[] = [];
+    if (destRes.ok) {
+      dests = await destRes.json() as { uuid: string }[];
+    } else {
+      const globalDestRes = await fetch(`${coolifyBaseUrl}/api/v1/destinations`, {
+        headers: { Authorization: `Bearer ${settings.coolifyApiToken}` },
+      });
+      if (globalDestRes.ok) {
+        dests = await globalDestRes.json() as { uuid: string }[];
+      }
+    }
+    if (Array.isArray(dests) && dests.length > 0) {
+      destinationUuid = dests[0].uuid;
+      steps.push({ name: "coolify_destination", status: "success", message: `Destination: ${destinationUuid}` });
+    }
+  } catch (e) {
+    console.warn("[CoolifyDeployer] Auto-fetch destinations failed:", e);
+  }
 
   try {
+    const bodyPayload: Record<string, unknown> = {
+      project_uuid: projectUuid,
+      server_uuid: serverUuid,
+      environment_name: "production",
+      git_repository: repoHtmlUrl,
+      git_branch: "main",
+      build_pack: "dockerfile",
+      ports_exposes: "3000",
+      health_check_enabled: true,
+      health_check_path: "/api/health",
+      instant_deploy: true,
+      name: repoName,
+    };
+
+    if (destinationUuid) {
+      bodyPayload.destination_uuid = destinationUuid;
+    }
+
     const appRes = await fetch(`${coolifyBaseUrl}/api/v1/applications/public`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${settings.coolifyApiToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        project_uuid: projectUuid,
-        server_uuid: serverUuid,
-        environment_name: "production",
-        git_repository: repoHtmlUrl,
-        git_branch: "main",
-        build_pack: "dockerfile",
-        ports_exposes: "3000",
-        health_check_enabled: true,
-        health_check_path: "/api/health",
-        instant_deploy: true,
-        name: repoName,
-      }),
+      body: JSON.stringify(bodyPayload),
     });
 
     const appData = (await appRes.json()) as {
