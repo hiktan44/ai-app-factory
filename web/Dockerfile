@@ -22,7 +22,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME="0.0.0.0"
 ENV NEXT_PRIVATE_LOCAL_IP="0.0.0.0"
 
-RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm run build
+RUN NODE_OPTIONS="--max-old-space-size=1536" pnpm run build
 
 # Stage 3: Production runner
 FROM node:20-alpine AS runner
