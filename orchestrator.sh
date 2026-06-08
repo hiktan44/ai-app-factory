@@ -281,6 +281,13 @@ call_claude() {
 
   # Working directory: WORKSPACE varsa orayı kullan (Claude dosyalara erişebilsin)
   local work_dir="${WORKSPACE:-$(pwd)}"
+  local step_name
+  step_name=$(basename "$output_file" .json)
+  if [[ "$step_name" == "build" || "$step_name" == verify_fix_* || "$step_name" == "review" || "$step_name" == "assets" || "$step_name" == "frontend" ]]; then
+    if [ -d "${work_dir}/app" ]; then
+      work_dir="${work_dir}/app"
+    fi
+  fi
   log "  Çalışma dizini: ${work_dir}"
 
   if [ "$use_gosu" = true ]; then
@@ -686,13 +693,36 @@ RUNNER_EOF
     return 0
   fi
 
-  # Sonucu oku ve parse et
+  # Sonucu oku ve parse et (Node ile güvenli parse)
+  local parsed_data
+  parsed_data=$(node -e '
+    try {
+      const fs = require("fs");
+      const raw = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+      let text = raw.result || "";
+      text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+      const startIdx = text.indexOf("{");
+      const endIdx = text.lastIndexOf("}");
+      if (startIdx !== -1 && endIdx !== -1) {
+        text = text.substring(startIdx, endIdx + 1);
+      }
+      const parsed = JSON.parse(text);
+      console.log(JSON.stringify({
+        approved: parsed.approved !== undefined ? parsed.approved : true,
+        feedback: parsed.feedback || "",
+        next_action: parsed.next_action || "PROCEED"
+      }));
+    } catch (e) {
+      console.log(JSON.stringify({ approved: true, feedback: "Parse error fallback: " + e.message, next_action: "PROCEED" }));
+    }
+  ' "${json_dosya}" 2>/dev/null || echo '{"approved":true,"feedback":"Node execution failed","next_action":"PROCEED"}')
+
   local approved
-  approved=$(jq -r '.result | fromjson | .approved // true' "${json_dosya}" 2>/dev/null || echo "true")
+  approved=$(echo "$parsed_data" | jq -r '.approved // true' 2>/dev/null || echo "true")
   local feedback
-  feedback=$(jq -r '.result | fromjson | .feedback // ""' "${json_dosya}" 2>/dev/null || echo "")
+  feedback=$(echo "$parsed_data" | jq -r '.feedback // ""' 2>/dev/null || echo "")
   local next_action
-  next_action=$(jq -r '.result | fromjson | .next_action // "PROCEED"' "${json_dosya}" 2>/dev/null || echo "PROCEED")
+  next_action=$(echo "$parsed_data" | jq -r '.next_action // "PROCEED"' 2>/dev/null || echo "PROCEED")
 
   log "Orkestratör Değerlendirme Sonucu: Approved=${approved}, Action=${next_action}"
   if [ -n "$feedback" ]; then

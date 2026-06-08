@@ -176,27 +176,22 @@ class PipelineManager {
     const category = parts.slice(0, parts.length - 2).join("_");
     if (!category) return null;
 
-    // Check if old run had a custom product spec
-    const oldWorkspace = path.join(getRunsDir(), runId);
-    const oldSpecPath = path.join(oldWorkspace, "product-spec.md");
-    const oldPreApproved = path.join(oldWorkspace, "pre-approved.json");
+    // DB'deki status'u queued olarak güncelleyelim
+    await dbUpsertRun({ id: runId, category, status: "queued" });
 
-    if (fs.existsSync(oldSpecPath) && fs.existsSync(oldPreApproved)) {
-      // Restart with the same spec
-      const spec = fs.readFileSync(oldSpecPath, "utf-8");
-      let appName = category;
-      try {
-        const preApproved = JSON.parse(fs.readFileSync(oldPreApproved, "utf-8"));
-        appName = preApproved.appName || category;
-      } catch {
-        // Use category as fallback
-      }
-      const result = await this.startRunWithSpec(category, spec, appName);
-      return { newRunId: result.runId, queued: result.queued };
+    if (this.isFull) {
+      const item: QueueItem = {
+        id: runId,
+        category,
+        requestedAt: new Date().toISOString(),
+      };
+      this.queue.push(item);
+      await dbEnqueue({ id: runId, run_id: runId, category });
+      return { newRunId: runId, queued: true };
     }
 
-    const { runId: newRunId, queued } = await this.startRun(category);
-    return { newRunId, queued };
+    this.spawnProcess(runId, category, true);
+    return { newRunId: runId, queued: false };
   }
 
   getQueue(): QueueItem[] {
@@ -213,7 +208,7 @@ class PipelineManager {
     return true;
   }
 
-  private spawnProcess(runId: string, category: string): void {
+  private spawnProcess(runId: string, category: string, isResume = false): void {
     const projectRoot = getProjectRoot();
     const orchestratorPath = getOrchestratorPath();
 
@@ -230,15 +225,34 @@ class PipelineManager {
     const workspace = path.join(getRunsDir(), runId);
     fs.mkdirSync(workspace, { recursive: true });
 
-    const meta: WebRunMeta = {
-      startedAt: new Date().toISOString(),
-      startedBy: "web-ui",
-      category,
-      runId,
-      status: "running",
-      pid: null,
-    };
-    fs.writeFileSync(path.join(workspace, "web-run-meta.json"), JSON.stringify(meta, null, 2));
+    const metaPath = path.join(workspace, "web-run-meta.json");
+    let meta: WebRunMeta;
+    if (isResume && fs.existsSync(metaPath)) {
+      try {
+        meta = JSON.parse(fs.readFileSync(metaPath, "utf-8")) as WebRunMeta;
+        meta.status = "running";
+        meta.pid = null;
+      } catch {
+        meta = {
+          startedAt: new Date().toISOString(),
+          startedBy: "web-ui",
+          category,
+          runId,
+          status: "running",
+          pid: null,
+        };
+      }
+    } else {
+      meta = {
+        startedAt: new Date().toISOString(),
+        startedBy: "web-ui",
+        category,
+        runId,
+        status: "running",
+        pid: null,
+      };
+    }
+    fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2));
 
     const child = spawn("bash", [orchestratorPath, category], {
       cwd: projectRoot,
@@ -248,6 +262,7 @@ class PipelineManager {
         PATH: process.env.PATH || "",
         RUN_ID: runId,
         MAX_TURNS: String(maxTurns),
+        RESUME_LAST: isResume ? "1" : "0",
       },
       stdio: ["ignore", "pipe", "pipe"],
       detached: false,
@@ -341,7 +356,9 @@ class PipelineManager {
       if (next) {
         // Remove from DB queue
         await dbRemoveFromQueue(next.id);
-        this.spawnProcess(next.id, next.category);
+        const workspace = path.join(getRunsDir(), next.id);
+        const hasLogs = fs.existsSync(path.join(workspace, "logs"));
+        this.spawnProcess(next.id, next.category, hasLogs);
       }
     }
   }

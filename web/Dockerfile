@@ -34,8 +34,12 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV CLAUDE_CONFIG_DIR=/factory/.claude
 
-# Runtime tools (orchestrator.sh needs bash, jq, curl, gosu, bc)
-RUN apk add --no-cache bash jq curl git gosu bc
+# Runtime tools (orchestrator.sh needs bash, jq, curl, gosu, bc, tzdata)
+RUN apk add --no-cache bash jq curl git gosu bc tzdata
+
+# Set timezone
+ENV TZ=Europe/Istanbul
+RUN cp /usr/share/zoneinfo/Europe/Istanbul /etc/localtime && echo "Europe/Istanbul" > /etc/timezone
 
 # Install Claude CLI globally (pipeline execution)
 RUN corepack enable && corepack prepare pnpm@latest --activate && npm install -g @anthropic-ai/claude-code
