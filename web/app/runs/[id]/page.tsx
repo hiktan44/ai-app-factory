@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useMemo, useCallback, useState } from "react";
+import { use, useMemo, useCallback, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useEventSource } from "@/hooks/use-event-source";
 import { useRunStatus } from "@/hooks/use-run-status";
@@ -25,9 +25,40 @@ export default function RunDetailPage({
     const [isLaunching, setIsLaunching] = useState(false);
     const [deployMessage, setDeployMessage] = useState<string | null>(null);
     const [livePreviewUrl, setLivePreviewUrl] = useState<string | null>(null);
+    const [notified, setNotified] = useState(false);
+
+    // Request desktop notification permission on mount
+    useEffect(() => {
+      if (typeof window !== "undefined" && "Notification" in window) {
+        if (Notification.permission === "default") {
+          Notification.requestPermission();
+        }
+      }
+    }, []);
 
   const { run, loading } = useRunStatus(id, 5000);
-    const { logs, isConnected, isComplete } = useEventSource(`/api/runs/${id}/stream`);
+
+    // Trigger notification when run finishes (success, failure, or stopped)
+    useEffect(() => {
+      if (run && (run.status === "completed" || run.status === "failed" || run.status === "stopped")) {
+        if (!notified && typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+          const statusText = run.status === "completed" 
+            ? "Başarıyla Tamamlandı! 🎉" 
+            : run.status === "failed" 
+              ? "Hata Alarak Durdu! ❌" 
+              : "Durduruldu. 🛑";
+          
+          new Notification("AI App Factory", {
+            body: `"${run.category || id}" projesi için işlem sonlandı.\nDurum: ${statusText}`,
+            icon: "/favicon.ico"
+          });
+          setNotified(true);
+        }
+      } else if (run && run.status === "running") {
+        setNotified(false);
+      }
+    }, [run, notified, id]);
+  const { logs, isConnected, isComplete } = useEventSource(`/api/runs/${id}/stream`);
 
   const parsed = useMemo(() => {
         if (!logs) {
