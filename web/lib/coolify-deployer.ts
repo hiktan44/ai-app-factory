@@ -77,6 +77,7 @@ export async function deployGeneratedApp(
         Authorization: `Bearer ${settings.githubToken}`,
         Accept: "application/vnd.github.v3+json",
         "Content-Type": "application/json",
+        "User-Agent": "AI-App-Factory",
       },
       body: JSON.stringify({
         name: repoName,
@@ -100,7 +101,11 @@ export async function deployGeneratedApp(
       if (repoRes.status === 422 && (errMessages.includes("already exists") || errMessages.includes("creation failed"))) {
         // Fetch existing repo info
         const owner = githubOrg || (await fetch("https://api.github.com/user", {
-          headers: { Authorization: `Bearer ${settings.githubToken}`, Accept: "application/vnd.github.v3+json" },
+          headers: {
+            Authorization: `Bearer ${settings.githubToken}`,
+            Accept: "application/vnd.github.v3+json",
+            "User-Agent": "AI-App-Factory",
+          },
         }).then(r => r.json()).then((d: { login: string }) => d.login));
 
         repoHtmlUrl = `https://github.com/${owner}/${repoName}`;

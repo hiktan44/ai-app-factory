@@ -80,6 +80,7 @@ export async function deployToVercel(
         Authorization: `Bearer ${settings.githubToken}`,
         Accept: "application/vnd.github.v3+json",
         "Content-Type": "application/json",
+        "User-Agent": "AI-App-Factory",
       },
       body: JSON.stringify({
         name: repoName,
@@ -313,7 +314,11 @@ export async function deployToVercel(
 
 async function getGitHubUsername(token: string): Promise<string> {
   const res = await fetch("https://api.github.com/user", {
-    headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github.v3+json" },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github.v3+json",
+      "User-Agent": "AI-App-Factory",
+    },
   });
   const data = (await res.json()) as { login: string };
   return data.login;
