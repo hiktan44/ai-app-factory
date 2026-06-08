@@ -1465,57 +1465,73 @@ fi
 
 # ─── LOKALDE ÇALIŞTIR VE TARAYICIDA AÇ ─────────────────────────
 if [ "$BUILD_SUCCESS" = true ] && [ -d "${WORKSPACE}/app" ]; then
-  log "=========================================="
-  log "  LOKALDE ÇALIŞTIRMA VE TEST"
-  log "=========================================="
-  
-  find_free_port() {
-    local port=3001
-    while lsof -i :$port >/dev/null 2>&1; do
-      port=$((port + 1))
-    done
-    echo $port
-  }
-  
-  LOCAL_PORT=$(find_free_port)
-  log "Kullanılabilir boş port bulundu: ${LOCAL_PORT}"
-  
-  (
-    cd "${WORKSPACE}/app"
-    if [ ! -d "node_modules" ]; then
-      log "node_modules bulunamadı, bağımlılıklar kuruluyor (pnpm install)..."
-      pnpm install > pnpm-install.log 2>&1 || log "UYARI: pnpm install sırasında bazı hatalar oluştu"
-    fi
+  # Docker container/sunucu ortamlarında boşa sunucu ayağa kaldırıp RAM harcamasını önleyelim.
+  # (Sadece lokal makinede çalıştırılsın)
+  if ! [[ "$OSTYPE" == "darwin"* ]] && command -v gosu &>/dev/null; then
+    log "Sunucu ortamı tespit edildi — Lokal önizleme sunucusu başlatılmadı (Deploy adımlarını kullanın)."
+  else
+    log "=========================================="
+    log "  LOKALDE ÇALIŞTIRMA VE TEST"
+    log "=========================================="
     
-    log "Uygulama arka planda PORT=${LOCAL_PORT} ile başlatılıyor..."
-    PORT=${LOCAL_PORT} nohup pnpm run dev --port ${LOCAL_PORT} > local-dev.log 2>&1 &
-    DEV_PID=$!
-    echo $DEV_PID > local-dev.pid
-    echo $LOCAL_PORT > local-dev.port
+    find_free_port() {
+      local port=3001
+      while command -v lsof &>/dev/null && lsof -i :$port >/dev/null 2>&1; do
+        port=$((port + 1))
+      done
+      echo $port
+    }
     
-    log "Sunucu başlatıldı (PID: ${DEV_PID}). Hazır olması bekleniyor..."
+    LOCAL_PORT=$(find_free_port)
+    log "Kullanılabilir boş port bulundu: ${LOCAL_PORT}"
     
-    server_ready=false
-    for i in {1..15}; do
-      if lsof -i :$LOCAL_PORT >/dev/null 2>&1 || curl -s "http://localhost:${LOCAL_PORT}" >/dev/null 2>&1; then
-        server_ready=true
-        break
+    (
+      cd "${WORKSPACE}/app"
+      
+      # Next.js dev sunucu çökmesini önlemek için mock .env dosyası oluştur
+      if [ ! -f ".env" ] && [ ! -f ".env.local" ]; then
+        log "Uygulama için geçici .env dosyası oluşturuluyor..."
+        echo "NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-http://localhost:54321}" > .env
+        echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY:-mock-anon-key}" >> .env
+        echo "SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-mock-service-role-key}" >> .env
+        echo "DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@localhost:54322/postgres}" >> .env
       fi
-      sleep 1
-    done
-    
-    if [ "$server_ready" = true ]; then
-      log "Sunucu başarıyla aktif hale geldi ✓"
-      if [[ "$OSTYPE" == "darwin"* ]]; then
-        log "macOS algılandı, sayfa tarayıcıda açılıyor: http://localhost:${LOCAL_PORT}"
-        open "http://localhost:${LOCAL_PORT}"
+
+      if [ ! -d "node_modules" ]; then
+        log "node_modules bulunamadı, bağımlılıklar kuruluyor (pnpm install)..."
+        pnpm install > pnpm-install.log 2>&1 || log "UYARI: pnpm install sırasında bazı hatalar oluştu"
+      fi
+      
+      log "Uygulama arka planda PORT=${LOCAL_PORT} ile başlatılıyor..."
+      PORT=${LOCAL_PORT} nohup pnpm run dev --port ${LOCAL_PORT} > local-dev.log 2>&1 &
+      DEV_PID=$!
+      echo $DEV_PID > local-dev.pid
+      echo $LOCAL_PORT > local-dev.port
+      
+      log "Sunucu başlatıldı (PID: ${DEV_PID}). Hazır olması bekleniyor..."
+      
+      server_ready=false
+      for i in {1..15}; do
+        if (command -v lsof &>/dev/null && lsof -i :$LOCAL_PORT >/dev/null 2>&1) || curl -s "http://localhost:${LOCAL_PORT}" >/dev/null 2>&1; then
+          server_ready=true
+          break
+        fi
+        sleep 1
+      done
+      
+      if [ "$server_ready" = true ]; then
+        log "Sunucu başarıyla aktif hale geldi ✓"
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+          log "macOS algılandı, sayfa tarayıcıda açılıyor: http://localhost:${LOCAL_PORT}"
+          open "http://localhost:${LOCAL_PORT}"
+        else
+          log "Lütfen tarayıcınızdan şu adrese gidin: http://localhost:${LOCAL_PORT}"
+        fi
       else
-        log "Lütfen tarayıcınızdan şu adrese gidin: http://localhost:${LOCAL_PORT}"
+        log "UYARI: Sunucu 15 saniye içinde yanıt vermedi. Logları kontrol edin: ${WORKSPACE}/app/local-dev.log"
       fi
-    else
-      log "UYARI: Sunucu 15 saniye içinde yanıt vermedi. Logları kontrol edin: ${WORKSPACE}/app/local-dev.log"
-    fi
-  )
+    )
+  fi
 fi
 
 # ─── ÖZET ────────────────────────────────────────────────────

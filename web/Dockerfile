@@ -34,8 +34,8 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV CLAUDE_CONFIG_DIR=/factory/.claude
 
-# Runtime tools (orchestrator.sh needs bash, jq, curl, gosu, bc, tzdata)
-RUN apk add --no-cache bash jq curl git gosu bc tzdata
+# Runtime tools (orchestrator.sh needs bash, jq, curl, gosu, bc, tzdata, lsof)
+RUN apk add --no-cache bash jq curl git gosu bc tzdata lsof
 
 # Set timezone
 ENV TZ=Europe/Istanbul
