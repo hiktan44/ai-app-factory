@@ -207,30 +207,34 @@ export async function deployGeneratedApp(
   const coolifyBaseUrl = settings.coolifyApiUrl.replace(/\/+$/, "");
 
   let appUuid = "";
-  let destinationUuid = "";
+  let destinationUuid = settings.coolifyDestinationUuid || "";
 
-  // Dynamic destination lookup (Required if server has multiple destinations)
-  try {
-    const destRes = await fetch(`${coolifyBaseUrl}/api/v1/servers/${serverUuid}/destinations`, {
-      headers: { Authorization: `Bearer ${settings.coolifyApiToken}` },
-    });
-    let dests: { uuid: string }[] = [];
-    if (destRes.ok) {
-      dests = await destRes.json() as { uuid: string }[];
-    } else {
-      const globalDestRes = await fetch(`${coolifyBaseUrl}/api/v1/destinations`, {
+  // Dynamic destination lookup (Required if server has multiple destinations and not configured)
+  if (!destinationUuid) {
+    try {
+      const destRes = await fetch(`${coolifyBaseUrl}/api/v1/servers/${serverUuid}/destinations`, {
         headers: { Authorization: `Bearer ${settings.coolifyApiToken}` },
       });
-      if (globalDestRes.ok) {
-        dests = await globalDestRes.json() as { uuid: string }[];
+      let dests: { uuid: string }[] = [];
+      if (destRes.ok) {
+        dests = await destRes.json() as { uuid: string }[];
+      } else {
+        const globalDestRes = await fetch(`${coolifyBaseUrl}/api/v1/destinations`, {
+          headers: { Authorization: `Bearer ${settings.coolifyApiToken}` },
+        });
+        if (globalDestRes.ok) {
+          dests = await globalDestRes.json() as { uuid: string }[];
+        }
       }
+      if (Array.isArray(dests) && dests.length > 0) {
+        destinationUuid = dests[0].uuid;
+        steps.push({ name: "coolify_destination", status: "success", message: `Destination: ${destinationUuid}` });
+      }
+    } catch (e) {
+      console.warn("[CoolifyDeployer] Auto-fetch destinations failed:", e);
     }
-    if (Array.isArray(dests) && dests.length > 0) {
-      destinationUuid = dests[0].uuid;
-      steps.push({ name: "coolify_destination", status: "success", message: `Destination: ${destinationUuid}` });
-    }
-  } catch (e) {
-    console.warn("[CoolifyDeployer] Auto-fetch destinations failed:", e);
+  } else {
+    steps.push({ name: "coolify_destination", status: "success", message: `Destination (Configured): ${destinationUuid}` });
   }
 
   try {

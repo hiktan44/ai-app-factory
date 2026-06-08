@@ -17,6 +17,9 @@ export async function GET() {
     githubOrg: settings.githubOrg || "",
     coolifyApiUrl: settings.coolifyApiUrl || "",
     coolifyApiToken: maskValue(settings.coolifyApiToken || ""),
+    coolifyServerUuid: settings.coolifyServerUuid || "",
+    coolifyProjectUuid: settings.coolifyProjectUuid || "",
+    coolifyDestinationUuid: settings.coolifyDestinationUuid || "",
     maxTurns: settings.maxTurns || 50,
     maxConcurrentRuns: settings.maxConcurrentRuns || 1,
   });

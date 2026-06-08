@@ -22,6 +22,9 @@ interface SettingsForm {
   // Coolify
   coolifyApiUrl: string;
   coolifyApiToken: string;
+  coolifyServerUuid: string;
+  coolifyProjectUuid: string;
+  coolifyDestinationUuid: string;
   // Pipeline
   maxTurns: number;
   maxConcurrentRuns: number;
@@ -46,6 +49,9 @@ export default function SettingsPage() {
     vercelTeamId: "",
     coolifyApiUrl: "",
     coolifyApiToken: "",
+    coolifyServerUuid: "",
+    coolifyProjectUuid: "",
+    coolifyDestinationUuid: "",
     maxTurns: 50,
     maxConcurrentRuns: 1,
   });
@@ -329,6 +335,18 @@ export default function SettingsPage() {
             <div>
               <label className="block text-sm text-content-secondary mb-1.5">API Token</label>
               <input type="password" value={settings.coolifyApiToken} onChange={update("coolifyApiToken")} placeholder="Bearer token..." className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-sm text-content-secondary mb-1.5">Server UUID</label>
+              <input type="text" value={settings.coolifyServerUuid} onChange={update("coolifyServerUuid")} placeholder="Server UUID..." className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-sm text-content-secondary mb-1.5">Project UUID</label>
+              <input type="text" value={settings.coolifyProjectUuid} onChange={update("coolifyProjectUuid")} placeholder="Project UUID..." className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-sm text-content-secondary mb-1.5">Destination UUID (Birden fazla ağ/hedef tanımlıysa zorunlu)</label>
+              <input type="text" value={settings.coolifyDestinationUuid} onChange={update("coolifyDestinationUuid")} placeholder="Destination UUID..." className={inputClass} />
             </div>
             <TestBtn service="coolify" keyField="coolifyApiToken" />
           </div>

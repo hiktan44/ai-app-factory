@@ -22,6 +22,7 @@ export interface AppSettings {
   coolifyApiToken: string;
   coolifyServerUuid: string;
   coolifyProjectUuid: string;
+  coolifyDestinationUuid: string;
   // Pipeline
   maxTurns: number;
   maxConcurrentRuns: number;
@@ -57,6 +58,7 @@ export function readSettings(): AppSettings {
     coolifyApiToken: data.coolifyApiToken || process.env.COOLIFY_API_TOKEN || "",
     coolifyServerUuid: data.coolifyServerUuid || process.env.COOLIFY_SERVER_UUID || "",
     coolifyProjectUuid: data.coolifyProjectUuid || process.env.COOLIFY_PROJECT_UUID || "",
+    coolifyDestinationUuid: data.coolifyDestinationUuid || process.env.COOLIFY_DESTINATION_UUID || "",
     maxTurns: data.maxTurns || (process.env.MAX_TURNS ? parseInt(process.env.MAX_TURNS, 10) : 50),
     maxConcurrentRuns: data.maxConcurrentRuns || 1,
   };
