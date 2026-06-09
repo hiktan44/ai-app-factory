@@ -147,8 +147,9 @@ export async function deployGeneratedApp(
       const dockerfilePath = path.join(config.appDir, "Dockerfile");
       if (fs.existsSync(dockerfilePath)) {
         let content = fs.readFileSync(dockerfilePath, "utf-8");
-        if (content.includes("AS runner") && !content.includes("apk add") && !content.includes("curl")) {
-          const runnerRegex = /(FROM\s+node:[^\s]+\s+AS\s+runner\s*\n)/i;
+        const lowerContent = content.toLowerCase();
+        if (lowerContent.includes("as runner") && !lowerContent.includes("curl")) {
+          const runnerRegex = /(FROM\s+node:[^\s]+\s+as\s+runner[^\n]*\n)/i;
           if (runnerRegex.test(content)) {
             content = content.replace(runnerRegex, "$1RUN apk add --no-cache curl\n");
             fs.writeFileSync(dockerfilePath, content, "utf-8");
@@ -159,6 +160,7 @@ export async function deployGeneratedApp(
     } catch (err) {
       console.warn("[CoolifyDeployer] Dockerfile auto-repair failed:", err);
     }
+
 
 
     // Remove existing .git directory if present (clean state)
