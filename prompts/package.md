@@ -38,8 +38,12 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
+# Coolify healthcheck için curl zorunludur
+RUN apk add --no-cache curl
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
+
 
 # Standalone derleme çıktılarının kopyalanması
 COPY --from=builder /app/public ./public
