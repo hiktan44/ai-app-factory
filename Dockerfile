@@ -8,7 +8,8 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 COPY web/package.json web/pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile && pnpm store prune
+
 
 # Stage 2: Build
 FROM node:20-alpine AS builder
@@ -39,7 +40,8 @@ ENV TZ=Europe/Istanbul
 RUN cp /usr/share/zoneinfo/Europe/Istanbul /etc/localtime && echo "Europe/Istanbul" > /etc/timezone
 
 # Install Claude CLI globally (pipeline execution)
-RUN corepack enable && npm install -g @anthropic-ai/claude-code
+RUN corepack enable && npm install -g @anthropic-ai/claude-code && npm cache clean --force
+
 
 # Create non-root user (claude --dangerously-skip-permissions requires non-root)
 RUN addgroup -g 1001 -S factory && adduser -u 1001 -S factory -G factory
