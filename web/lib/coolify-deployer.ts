@@ -142,6 +142,25 @@ export async function deployGeneratedApp(
       return { success: false, error: `App dizini bulunamadı: ${config.appDir}`, githubRepoUrl: repoHtmlUrl, steps };
     }
 
+    // Auto-repair Dockerfile if curl is missing in runner stage (prevent unhealthy deployment)
+    try {
+      const dockerfilePath = path.join(config.appDir, "Dockerfile");
+      if (fs.existsSync(dockerfilePath)) {
+        let content = fs.readFileSync(dockerfilePath, "utf-8");
+        if (content.includes("AS runner") && !content.includes("apk add") && !content.includes("curl")) {
+          const runnerRegex = /(FROM\s+node:[^\s]+\s+AS\s+runner\s*\n)/i;
+          if (runnerRegex.test(content)) {
+            content = content.replace(runnerRegex, "$1RUN apk add --no-cache curl\n");
+            fs.writeFileSync(dockerfilePath, content, "utf-8");
+            steps.push({ name: "dockerfile_repair", status: "success", message: "Dockerfile auto-repaired with curl dependency" });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("[CoolifyDeployer] Dockerfile auto-repair failed:", err);
+    }
+
+
     // Remove existing .git directory if present (clean state)
     const gitDir = path.join(config.appDir, ".git");
     if (fs.existsSync(gitDir)) {
