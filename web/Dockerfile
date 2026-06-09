@@ -43,7 +43,8 @@ ENV TZ=Europe/Istanbul
 RUN cp /usr/share/zoneinfo/Europe/Istanbul /etc/localtime && echo "Europe/Istanbul" > /etc/timezone
 
 # Install Claude CLI globally (pipeline execution)
-RUN corepack enable && corepack prepare pnpm@latest --activate && npm install -g @anthropic-ai/claude-code && npm cache clean --force && pnpm store prune
+RUN corepack enable && corepack prepare pnpm@latest --activate && npm install -g @anthropic-ai/claude-code && npm cache clean --force
+
 
 
 # Non-root user for Claude CLI (--dangerously-skip-permissions refuses root)
