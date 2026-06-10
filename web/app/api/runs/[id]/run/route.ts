@@ -140,15 +140,16 @@ async function runApp(id: string): Promise<NextResponse<RunResult>> {
     // Sunucuyu arka planda (detached) başlat
     console.log(`[Local Run] Dev server başlatılıyor. Port: ${port}`);
     const logFile = path.join(appDir, "local-dev.log");
-    const logStream = fs.createWriteStream(logFile, { flags: "a" });
+    const logFd = fs.openSync(logFile, "a");
 
     // pnpm run dev komutunu çalıştır
     const child = spawn("pnpm", ["run", "dev", "--port", String(port)], {
       cwd: appDir,
       env: { ...process.env, PORT: String(port) },
       detached: true,
-      stdio: ["ignore", logStream, logStream],
+      stdio: ["ignore", logFd, logFd],
     });
+
 
     child.unref(); // Ebeveyn Next.js sürecinden bağımsızlaştır
 
