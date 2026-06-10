@@ -142,24 +142,41 @@ export async function deployGeneratedApp(
       return { success: false, error: `App dizini bulunamadı: ${config.appDir}`, githubRepoUrl: repoHtmlUrl, steps };
     }
 
-    // Auto-repair Dockerfile if curl is missing in runner stage (prevent unhealthy deployment)
+    // Auto-repair Dockerfile if curl is missing in runner stage or pnpm 10 build script block is present
     try {
       const dockerfilePath = path.join(config.appDir, "Dockerfile");
       if (fs.existsSync(dockerfilePath)) {
         let content = fs.readFileSync(dockerfilePath, "utf-8");
+        let modified = false;
         const lowerContent = content.toLowerCase();
+
+        // 1) Healthcheck için curl kontrolü
         if (lowerContent.includes("as runner") && !lowerContent.includes("curl")) {
           const runnerRegex = /(FROM\s+node:[^\s]+\s+as\s+runner[^\n]*\n)/i;
           if (runnerRegex.test(content)) {
             content = content.replace(runnerRegex, "$1RUN apk add --no-cache curl\n");
-            fs.writeFileSync(dockerfilePath, content, "utf-8");
-            steps.push({ name: "dockerfile_repair", status: "success", message: "Dockerfile auto-repaired with curl dependency" });
+            modified = true;
           }
+        }
+
+        // 2) Pnpm 10 build script engellemelerini bypass etme
+        if (lowerContent.includes("pnpm install") && !lowerContent.includes("only-built-dependencies")) {
+          const pnpmInstallRegex = /(RUN\s+(?:--mount=[^\s]+\s+)?pnpm\s+install[^\n]*\n)/i;
+          if (pnpmInstallRegex.test(content)) {
+            content = content.replace(pnpmInstallRegex, "RUN echo \"only-built-dependencies[]=\" > .npmrc\n$1");
+            modified = true;
+          }
+        }
+
+        if (modified) {
+          fs.writeFileSync(dockerfilePath, content, "utf-8");
+          steps.push({ name: "dockerfile_repair", status: "success", message: "Dockerfile auto-repaired with curl and pnpm v10 bypass" });
         }
       }
     } catch (err) {
       console.warn("[CoolifyDeployer] Dockerfile auto-repair failed:", err);
     }
+
 
 
 
