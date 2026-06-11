@@ -161,7 +161,7 @@ export async function deployGeneratedApp(
 
         // 2) Pnpm 10 build script engellemelerini bypass etme
         if (lowerContent.includes("pnpm install") && !lowerContent.includes("only-built-dependencies")) {
-          const pnpmInstallRegex = /(RUN\s+(?:--mount=[^\s]+\s+)?pnpm\s+install[^\n]*\n)/i;
+          const pnpmInstallRegex = /(RUN\s+(?:--mount=\S+\s+)?pnpm\s+install[^\r\n]*)/i;
           if (pnpmInstallRegex.test(content)) {
             content = content.replace(pnpmInstallRegex, "RUN echo \"only-built-dependencies[]=\" > .npmrc\n$1");
             modified = true;
