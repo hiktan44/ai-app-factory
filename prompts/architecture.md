@@ -253,7 +253,7 @@ Uygulamanın güvenliğini sağlamak için adım adım takip edilecek kontrol li
 
 Daha önceki projelerden edinilen kritik deneyimleri uygulamak senin sorumluluğundadır:
 - **Tailwind v4 Kuralı:** `@theme` bloğunda asla `--spacing-*`, `--radius-*` veya `--animate-*` tanımlama yapma. Bu işlem Tailwind v4'ün tüm layout sistemini kırar.
-- **Supabase Auth Kuralı:** SMTP sunucusu kurulmadan Magic Link ile doğrulama yapılamaz. Bu yüzden varsayılan auth yöntemi kesinlikle **Email & Password** olmalı veya `GOTRUE_MAILER_AUTOCONFIRM=true` ayarlanmalıdır.
+- **Supabase Auth ve Demo Giriş Kuralı:** SMTP sunucusu kurulmadan Magic Link ile doğrulama yapılamaz. Bu yüzden varsayılan auth yöntemi kesinlikle **Email & Password** olmalı veya `GOTRUE_MAILER_AUTOCONFIRM=true` ayarlanmalıdır. Ayrıca, eğer gerçek Supabase API URL/Key bilgileri tanımlı değilse (veya mock ise) auth sistemi otomatik olarak **Demo/Sandbox** moduna geçmelidir. Giriş sayfasında (`login/page.tsx`) belirgin bir şekilde "Demo Giriş Bilgileri: admin@example.com / admin123" kartı yer almalı ve bu bilgilerle giriş yapıldığında sistem doğrudan mock bir admin oturumu açarak tüm dashboard özelliklerini aktif etmelidir. Gerçek API anahtarları girildiğinde giriş gerçek Supabase Auth'a otomatik olarak dönmelidir.
 - **Route Group Dikkat:** Route group parantezleri `(dashboard)` gibi URL'de görünmez. Link yönlendirmelerinde `/dashboard` kullanılmalıdır.
 - **Health Check Zorunluluğu:** Coolify deployment'larının çökmemesi ve canlılık kontrolünün sağlanması için `/api/health` API rotası ilk günden ayarlanmalıdır.
 

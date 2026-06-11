@@ -30,6 +30,7 @@ Sana sağlanan Stitch MCP araçlarını kullanarak frontend tasarım sürecini a
 *   **Tailwind CSS v4 Uyumlu:** Tasarım sistemi tanımlarında Tailwind v4'ün varsayılanspacing/radius değerlerini bozmayacak, sadece renk (`--color-*`) ve tipografi (`--font-family-*`) ezecek şemalar kurgula.
 *   **Erişilebilirlik (a11y):** Form elemanlarında doğru label'lar, butonlarda aria-label'lar ve klavye odağı (focus states) bulunmalıdır.
 *   **Rich Aesthetics:** Cam morfizmleri (glassmorphism), yumuşak gradyan geçişleri ve mikro animasyonlar ile premium bir ilk izlenim sağla.
+*   **Demo Giriş Bilgileri Arayüzü:** Giriş ekranında (Login page), kullanıcının Supabase ve database entegrasyonu kurmadan önce sistemi deneyimleyebilmesi için bir "Demo Hesap" kartı yerleştir. Kart üzerinde `admin@example.com` / `admin123` bilgileri açıkça yazmalı ve tek tıkla giriş butonuna basarak doğrudan panele (bypass modunda) erişim sağlanabilmelidir.
 
 ---
 
