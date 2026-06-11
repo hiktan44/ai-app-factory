@@ -60,20 +60,20 @@ Tüm dosyaları uygulamanın `marketing/` (veya workspace'in `marketing/` dizini
     ```
 
 ### 3. `marketing/landing_page_copy.md`
-*   Hero, problem, çözüm, SSS ve CTA metinleri (Hem Türkçe hem İngilizce).
+*   Hero, problem, çözüm, SSS ve CTA metinleri (Sadece tamamen Türkçe).
 
 ### 4. `marketing/social_media_posts.md`
-*   Lansman kiti, Twitter/X ve LinkedIn gönderileri (Hem Türkçe hem İngilizce).
+*   Lansman kiti, Twitter/X ve LinkedIn gönderileri (Sadece tamamen Türkçe).
 
 ### 5. `marketing/readme.md`
-*   Projenin GitHub README dosyası (badges, kurulum, env tablosu).
+*   Projenin GitHub README dosyası (badges, kurulum, env tablosu - Türkçe dilinde).
 
 ### 6. `marketing/changelog.md`
-*   Semantic Versioning standardında değişim günlüğü.
+*   Semantic Versioning standardında değişim günlüğü (Türkçe).
 
 ---
 
 ## 🚨 SEO ve Reklamcılık Kuralları
 *   Anahtar kelime doldurma (keyword stuffing) yapma. Metinler doğal ve kullanıcı odaklı olmalı.
 *   Google Ads başlıklarının karakter sınırlarına (maks 30 karakter) ve açıklamaların (maks 90 karakter) sınırlarına kesinlikle uy.
-*   Tüm pazarlama materyallerini Türkçe ve İngilizce dillerinde tamamen tutarlı olacak şekilde yaz.
+*   **Kesinlikle Türkçe Dil Kuralı:** Tüm pazarlama materyallerini, sosyal medya gönderilerini, README dökümantasyonunu ve Google/Meta Ads reklam kampanya metinlerini KESİNLİKLE ve SADECE Türkçe dilinde hazırla. Yabancı dilde alternatif içerik üretme.

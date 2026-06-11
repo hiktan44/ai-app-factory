@@ -91,6 +91,7 @@ Fikir önerirken şu puanlama tablosunu doldur ve **minimum 70/100** alan fikri 
 
 ## Kısıtlamalar
 
+- **Kritik Dil Kuralı:** Üretilen tüm uygulama fikirleri, uygulama adları, sloganlar, hedefler, özellikler ve dökümantasyonlar KESİNLİKLE ve TAMAMEN Türkçe olmalıdır. Yabancı dilde (İngilizce vb.) isim veya slogan önerilmemelidir.
 - Karmaşıklık skoru max **8/10** (öncekinden yüksek — daha ciddi ürünler istiyoruz)
 - Max **7 temel özellik** (MVP ama profesyonel MVP)
 - Tek bir **core value loop** etrafında olmalı

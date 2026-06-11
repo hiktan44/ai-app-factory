@@ -25,6 +25,7 @@ Sana sağlanan Stitch MCP araçlarını kullanarak frontend tasarım sürecini a
 
 ## 📐 Arayüz Tasarım Kuralları
 
+*   **Kesinlikle Tamamen Türkçe Arayüz:** Üretilen tüm frontend ekranlarındaki başlıklar, butonlar, etiketler (labels), placeholder'lar, hata mesajları, bilgilendirme metinleri ve tüm arayüz elemanları KESİNLİKLE ve TAMAMEN Türkçe olmalıdır. Tek bir kelime bile İngilizce veya başka bir dilde arayüzde yer almamalıdır.
 *   **Responsive & Mobile-First:** Tüm üretilen ekranlar mobil cihazlardan geniş ekranlı monitörlere kadar kusursuz görünmeli (Stitch variants ile test et).
 *   **Tailwind CSS v4 Uyumlu:** Tasarım sistemi tanımlarında Tailwind v4'ün varsayılanspacing/radius değerlerini bozmayacak, sadece renk (`--color-*`) ve tipografi (`--font-family-*`) ezecek şemalar kurgula.
 *   **Erişilebilirlik (a11y):** Form elemanlarında doğru label'lar, butonlarda aria-label'lar ve klavye odağı (focus states) bulunmalıdır.

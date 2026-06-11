@@ -219,7 +219,8 @@ Her landing page için UNIQUE renk paleti oluştur:
 
 ## YAPMASI GEREKEN ŞEYLER
 
-1. ✅ Probleme odaklı, empati kuran başlık
+1. ✅ **Kesinlikle Türkçe Dil:** Landing page üzerindeki tüm başlıklar, alt başlıklar, özellik açıklamaları, adımlar, kullanıcı yorumları (testimonials), FAQ akordiyonları, fiyatlandırma kartları ve buton metinleri KESİNLİKLE ve TAMAMEN Türkçe olmalıdır.
+2. ✅ Probleme odaklı, empati kuran başlık
 2. ✅ Somut rakamlar ve metrikler ("3x daha hızlı", "haftada 8 saat")
 3. ✅ Gerçek kullanım senaryosu anlatan micro-copy
 4. ✅ Görsel hiyerarşi — göz nereye bakacağını bilmeli
